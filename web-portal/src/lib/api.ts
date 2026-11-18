@@ -59,3 +59,21 @@ export type Offer = {
   photo_url: string | null; poster_url: string | null; branch_ids: number[];
 };
 export type Page<T> = { items: T[]; total: number; page: number; page_size: number };
+
+// Fetches a file (image or HTML) with the login token, for downloads and printing.
+export async function apiBlob(path: string): Promise<Blob> {
+  const { data } = await supabase().auth.getSession();
+  const headers: Record<string, string> = {};
+  if (data.session) headers.Authorization = `Bearer ${data.session.access_token}`;
+  let res: Response;
+  try {
+    res = await fetch(`${API}/api/v1${path}`, { headers });
+  } catch {
+    throw new ApiError(0, "network", "Cannot reach the server. Is the API running?");
+  }
+  if (!res.ok) {
+    const json = await res.json().catch(() => null);
+    throw new ApiError(res.status, json?.error?.code ?? "error", json?.error?.message ?? `Request failed (${res.status})`);
+  }
+  return res.blob();
+}

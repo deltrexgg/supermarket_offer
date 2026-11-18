@@ -12,15 +12,17 @@ import (
 	"gorm.io/gorm"
 
 	"github.com/deltrexgg/supermarket_offer/api/internal/auth"
+	"github.com/deltrexgg/supermarket_offer/api/internal/render"
 	"github.com/deltrexgg/supermarket_offer/api/internal/storage"
 	"github.com/deltrexgg/supermarket_offer/api/internal/supabase"
 )
 
 type Handler struct {
-	DB    *gorm.DB
-	Redis *redis.Client
-	Store storage.Store
-	Admin *supabase.Admin
+	DB       *gorm.DB
+	Redis    *redis.Client
+	Store    storage.Store
+	Admin    *supabase.Admin
+	Renderer *render.Renderer
 }
 
 // supermarketID is the tenant of the request. RequireRole("supermarket") runs

@@ -81,6 +81,9 @@ func NewRouter(d Deps) *gin.Engine {
 	pt.GET("/offers/:id", d.Portal.GetOffer)
 	pt.PUT("/offers/:id", bodyLimit(6<<20+64<<10), d.Portal.UpdateOffer)
 	pt.DELETE("/offers/:id", d.Portal.DeleteOffer)
+	pt.POST("/offers/:id/poster", bodyLimit(4<<10), d.Portal.CreatePoster)
+	pt.GET("/offers/:id/poster", d.Portal.DownloadPoster)
+	pt.GET("/offers/:id/poster/print", d.Portal.PrintPoster)
 
 	// Rendering runs headless Chrome, so only signed-in users may call it.
 	authed.POST("/render", renderHandler(d.Renderer))

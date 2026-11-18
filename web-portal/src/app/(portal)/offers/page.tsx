@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { api, ApiError, type Branch, type Category, type Offer, type Page } from "@/lib/api";
+import { api, apiBlob, ApiError, type Branch, type Category, type Offer, type Page } from "@/lib/api";
 import { aed, dubaiToday, statusLabel } from "@/lib/format";
 
 const TABS = [
@@ -31,6 +31,12 @@ export default function OffersPage() {
   const [fields, setFields] = useState<Record<string, string>>({});
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
+  const [posterFor, setPosterFor] = useState<Offer | null>(null);
+  const [tpl, setTpl] = useState("hot_deal");
+  const [lang, setLang] = useState("en");
+  const [posterUrl, setPosterUrl] = useState<string | null>(null);
+  const [posterBusy, setPosterBusy] = useState(false);
+  const [posterError, setPosterError] = useState("");
 
   // Wait a moment after typing before searching.
   useEffect(() => {
@@ -65,6 +71,7 @@ export default function OffersPage() {
   }, []);
 
   function openNew() {
+    setPosterFor(null);
     const today = dubaiToday();
     setFields({}); setError(""); setPhoto(null);
     setDraft({
@@ -74,6 +81,7 @@ export default function OffersPage() {
   }
 
   function openEdit(o: Offer) {
+    setPosterFor(null);
     setFields({}); setError(""); setPhoto(null);
     setDraft({
       id: o.id, item_name: o.item_name, brand: o.brand ?? "", unit: o.unit, category_id: String(o.category_id),
@@ -119,6 +127,54 @@ export default function OffersPage() {
       await load();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not delete the offer.");
+    }
+  }
+
+  function openPoster(o: Offer) {
+    setDraft(null);
+    setPosterFor(o);
+    setPosterUrl(o.poster_url);
+    setPosterError("");
+  }
+
+  async function makePoster() {
+    if (!posterFor) return;
+    setPosterBusy(true);
+    setPosterError("");
+    try {
+      const r = await api<{ poster_url: string }>(`/portal/offers/${posterFor.id}/poster`, {
+        method: "POST", body: { template: tpl, lang },
+      });
+      setPosterUrl(r.poster_url);
+      await load();
+    } catch (err) {
+      setPosterError(err instanceof Error ? err.message : "Could not create the poster.");
+    }
+    setPosterBusy(false);
+  }
+
+  async function downloadPoster() {
+    if (!posterFor) return;
+    try {
+      const blob = await apiBlob(`/portal/offers/${posterFor.id}/poster`);
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `poster-${posterFor.id}.png`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      setPosterError(err instanceof Error ? err.message : "Could not download the poster.");
+    }
+  }
+
+  async function printPoster() {
+    if (!posterFor) return;
+    try {
+      const blob = await apiBlob(`/portal/offers/${posterFor.id}/poster/print?template=${tpl}&lang=${lang}`);
+      window.open(URL.createObjectURL(new Blob([blob], { type: "text/html" })), "_blank");
+    } catch (err) {
+      setPosterError(err instanceof Error ? err.message : "Could not open the print view.");
     }
   }
 
@@ -209,6 +265,42 @@ export default function OffersPage() {
         </form>
       )}
 
+      {posterFor && (
+        <div className="panel">
+          <h2>Poster for {posterFor.item_name}</h2>
+          <div className="row">
+            <label>Template
+              <select value={tpl} onChange={(e) => setTpl(e.target.value)}>
+                <option value="hot_deal">Hot deal</option>
+                <option value="weekend_offer">Weekend offer</option>
+              </select>
+            </label>
+            <label>Language
+              <select value={lang} onChange={(e) => setLang(e.target.value)}>
+                <option value="en">English</option>
+                <option value="ar">Arabic</option>
+              </select>
+            </label>
+            <button className="primary" onClick={makePoster} disabled={posterBusy}>
+              {posterBusy ? "Creating…" : posterUrl ? "Create again" : "Create poster"}
+            </button>
+          </div>
+          {posterError && <p className="error">{posterError}</p>}
+          {posterUrl && (
+            <>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img className="poster-preview" src={posterUrl} alt="Offer poster preview" />
+              <div className="row">
+                <button onClick={downloadPoster}>Download PNG</button>
+                <button onClick={printPoster}>Print</button>
+              </div>
+              <p className="muted">Print uses the template and language selected above.</p>
+            </>
+          )}
+          <div className="row"><button onClick={() => setPosterFor(null)}>Close</button></div>
+        </div>
+      )}
+
       <div className="row">
         <div className="tabs">
           {TABS.map((t) => (
@@ -235,6 +327,7 @@ export default function OffersPage() {
                 <td><span className={`status ${o.status}`}>{statusLabel(o.status, o.days_left)}</span></td>
                 <td>{o.branch_ids.length}</td>
                 <td className="actions">
+                  <button onClick={() => openPoster(o)}>Poster</button>
                   <button onClick={() => openEdit(o)}>Edit</button>
                   <button className="danger" onClick={() => remove(o)}>Delete</button>
                 </td>

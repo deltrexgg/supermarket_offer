@@ -67,9 +67,9 @@ An offer card contains: photo, item name, brand, unit, supermarket and logo, bra
 | GET | `/portal/offers` | `status` filter (`upcoming`, `active`, `expired`), `q`, paging. |
 | POST | `/portal/offers` | `multipart/form-data`: `item_name`, `brand`, `unit`, `category_id`, `regular_price`, `offer_price`, `valid_from`, `valid_to`, `branch_ids[]`, `photo`. `422` if any branch is not yours. Returns the offer with `discount_pct`. |
 | GET / PUT / DELETE | `/portal/offers/{id}` | PUT may replace the photo and the branch list. Cache is refreshed after commit. |
-| POST | `/portal/offers/{id}/poster` | Body: `template` (`hot_deal`, `weekend_offer`), `lang` (`en`, `ar`). Renders the PNG and returns `{ poster_url }`. |
+| POST | `/portal/offers/{id}/poster` | Body: `template` (`hot_deal`, `weekend_offer`), `lang` (`en`, `ar`). Renders an A4 PNG (1240 x 1754) with headless Chrome, stores it as `posters/{offer_id}-{timestamp}.png` (a new name each time, so caches never show an old poster) and returns `{ poster_url }`. Editing the offer clears its poster. |
 | GET | `/portal/offers/{id}/poster` | Downloads the PNG (`Content-Disposition: attachment`). |
-| GET | `/portal/offers/{id}/poster/print` | Print-friendly A4 HTML view. |
+| GET | `/portal/offers/{id}/poster/print` | Print-friendly A4 HTML view. Query: `template`, `lang`. It opens the print dialog; the portal fetches it with the login token and opens it in a new tab. |
 | POST | `/portal/ai/offer-text` | Nice-to-have. Body: item details. Returns `description` and `item_name_ar` from Claude. |
 
 Upload rules: JPEG, PNG or WebP, checked by file signature (not just extension), max 5 MB, stored under a random name in the public Supabase Storage bucket `offer-media` (S3 API). Responses return a full file URL built from `PUBLIC_FILE_BASE_URL` and the stored key.

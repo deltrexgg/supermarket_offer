@@ -27,6 +27,8 @@ var (
 type Store interface {
 	Put(ctx context.Context, key, contentType string, data []byte) error
 	Delete(ctx context.Context, key string) error
+	// Get returns the stored bytes and content type of a key.
+	Get(ctx context.Context, key string) ([]byte, string, error)
 	// URL is the public address of a stored key.
 	URL(key string) string
 }
@@ -116,6 +118,22 @@ func (s *S3) Delete(ctx context.Context, key string) error {
 		return fmt.Errorf("storage delete %s: %w", key, err)
 	}
 	return nil
+}
+
+func (s *S3) Get(ctx context.Context, key string) ([]byte, string, error) {
+	out, err := s.client.GetObject(ctx, &s3.GetObjectInput{
+		Bucket: aws.String(s.bucket),
+		Key:    aws.String(key),
+	})
+	if err != nil {
+		return nil, "", fmt.Errorf("storage get %s: %w", key, err)
+	}
+	defer out.Body.Close()
+	data, err := io.ReadAll(io.LimitReader(out.Body, 2*MaxImageBytes))
+	if err != nil {
+		return nil, "", fmt.Errorf("storage read %s: %w", key, err)
+	}
+	return data, aws.ToString(out.ContentType), nil
 }
 
 func (s *S3) URL(key string) string { return s.baseURL + "/" + key }

@@ -420,6 +420,8 @@ func (h *Handler) UpdateOffer(c *gin.Context) {
 		"regular_price": in.Regular, "offer_price": in.Offer,
 		"valid_from": in.ValidFrom, "valid_to": in.ValidTo,
 	}
+	// Any edit makes the saved poster out of date, so it is cleared.
+	updates["poster_path"] = nil
 	var newKey string
 	if img != nil {
 		newKey = photoKey(smID, img.Ext)
@@ -454,6 +456,9 @@ func (h *Handler) UpdateOffer(c *gin.Context) {
 	}
 	if newKey != "" && current.PhotoPath != nil {
 		h.removeFile(*current.PhotoPath)
+	}
+	if current.PosterPath != nil {
+		h.removeFile(*current.PosterPath)
 	}
 
 	cache.BumpOffersVersion(ctx, h.Redis)

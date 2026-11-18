@@ -88,7 +88,7 @@ func main() {
 		Addr: ":" + cfg.Port,
 		Handler: httpapi.NewRouter(httpapi.Deps{
 			DB: gdb, Redis: rdb, Renderer: rn, Auth: verifier,
-			Portal: &portal.Handler{DB: gdb, Redis: rdb, Store: store, Admin: supabase.NewAdmin(cfg.SupabaseURL, cfg.SupabaseServiceRoleKey)}, CORSOrigins: cfg.CORSOrigins,
+			Portal: &portal.Handler{DB: gdb, Redis: rdb, Store: store, Renderer: rn, Admin: supabase.NewAdmin(cfg.SupabaseURL, cfg.SupabaseServiceRoleKey)}, CORSOrigins: cfg.CORSOrigins,
 		}),
 		ReadHeaderTimeout: 10 * time.Second,
 	}
