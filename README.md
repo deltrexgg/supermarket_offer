@@ -42,7 +42,7 @@ With `SEED=true` (the default in `.env.example`) the API also fills an empty dat
 Set `SEED=false` afterwards. The seed never touches a database that already has supermarkets.
 
 - API health: http://localhost:8080/health
-- Portal: http://localhost:3000
+- Portal: http://localhost:3000 (sign in with a demo login, or register a new supermarket; branches, offers and photo upload)
 - Public site: http://localhost:3001
 
 ## HTML to image

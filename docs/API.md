@@ -35,9 +35,13 @@ Base path: `/api/v1`. JSON in and out, except file uploads (`multipart/form-data
 | Method | Path | Role | Notes |
 |---|---|---|---|
 | POST | `/auth/register` | public | Body: `name`, `email`, `password`, `phone`. Creates the Supabase user (email pre-confirmed), then the supermarket (`pending`) and its `users` row in one transaction. If that transaction fails, the Supabase user is deleted again. `201`. `409` if the email exists. |
-| GET | `/auth/me` | any | Current user, role and supermarket status. `403` if the supermarket is blocked. |
+| GET | `/auth/me` | any signed-in | Current user, role and supermarket status. `403` if the supermarket is blocked. |
 
 There is no `/auth/login` endpoint: signing in is done by the web app directly with Supabase Auth.
+
+Public lookups used by the forms: `GET /areas` and `GET /categories` return `{ items: [{id, name}] }`.
+
+Offers created or edited with `branch_ids[]` must list at least one of your own branches. A branch that offers still use cannot be deleted (`409`).
 
 ## Public
 

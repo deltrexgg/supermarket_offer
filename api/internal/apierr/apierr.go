@@ -44,3 +44,10 @@ func (f Fields) Add(name, problem string) {
 	}
 }
 func (f Fields) Empty() bool { return len(f) == 0 }
+
+func PayloadTooLarge(c *gin.Context, msg string) {
+	write(c, http.StatusRequestEntityTooLarge, "payload_too_large", msg, nil)
+}
+func UnsupportedMedia(c *gin.Context, msg string) {
+	write(c, http.StatusUnsupportedMediaType, "unsupported_media_type", msg, nil)
+}

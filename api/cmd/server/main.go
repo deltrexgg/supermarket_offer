@@ -18,8 +18,11 @@ import (
 	"github.com/deltrexgg/supermarket_offer/api/internal/db"
 	"github.com/deltrexgg/supermarket_offer/api/internal/httpapi"
 	"github.com/deltrexgg/supermarket_offer/api/internal/migrate"
+	"github.com/deltrexgg/supermarket_offer/api/internal/portal"
 	"github.com/deltrexgg/supermarket_offer/api/internal/render"
 	"github.com/deltrexgg/supermarket_offer/api/internal/seed"
+	"github.com/deltrexgg/supermarket_offer/api/internal/storage"
+	"github.com/deltrexgg/supermarket_offer/api/internal/supabase"
 	"github.com/deltrexgg/supermarket_offer/api/migrations"
 )
 
@@ -66,6 +69,15 @@ func main() {
 		log.Fatalf("redis: %v", err)
 	}
 
+	store, err := storage.NewS3(cfg.S3Endpoint, cfg.S3Region, cfg.S3Bucket,
+		cfg.S3AccessKeyID, cfg.S3SecretAccessKey, cfg.PublicFileBaseURL)
+	if err != nil {
+		log.Fatalf("storage: %v", err)
+	}
+	if cfg.SupabaseServiceRoleKey == "" {
+		log.Fatalf("config: SUPABASE_SERVICE_ROLE_KEY is not set (registration needs it)")
+	}
+
 	rn, err := render.New(cfg.ChromePath)
 	if err != nil {
 		log.Fatalf("renderer: %v", err)
@@ -75,7 +87,8 @@ func main() {
 	srv := &http.Server{
 		Addr: ":" + cfg.Port,
 		Handler: httpapi.NewRouter(httpapi.Deps{
-			DB: gdb, Redis: rdb, Renderer: rn, Auth: verifier, CORSOrigins: cfg.CORSOrigins,
+			DB: gdb, Redis: rdb, Renderer: rn, Auth: verifier,
+			Portal: &portal.Handler{DB: gdb, Redis: rdb, Store: store, Admin: supabase.NewAdmin(cfg.SupabaseURL, cfg.SupabaseServiceRoleKey)}, CORSOrigins: cfg.CORSOrigins,
 		}),
 		ReadHeaderTimeout: 10 * time.Second,
 	}

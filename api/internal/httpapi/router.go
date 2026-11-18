@@ -13,6 +13,7 @@ import (
 
 	"github.com/deltrexgg/supermarket_offer/api/internal/apierr"
 	"github.com/deltrexgg/supermarket_offer/api/internal/auth"
+	"github.com/deltrexgg/supermarket_offer/api/internal/portal"
 	"github.com/deltrexgg/supermarket_offer/api/internal/render"
 )
 
@@ -21,6 +22,7 @@ type Deps struct {
 	Redis       *redis.Client
 	Renderer    *render.Renderer
 	Auth        *auth.Verifier
+	Portal      *portal.Handler
 	CORSOrigins string
 }
 
@@ -57,9 +59,28 @@ func NewRouter(d Deps) *gin.Engine {
 
 	v1 := r.Group("/api/v1")
 
+	// Public routes.
+	v1.POST("/auth/register", bodyLimit(64<<10), d.Portal.Register)
+	v1.GET("/areas", d.Portal.Areas)
+	v1.GET("/categories", d.Portal.Categories)
+
 	// Signed-in routes. Phase 2+ adds the supermarket and admin groups here.
 	authed := v1.Group("", d.Auth.Authenticate())
 	authed.GET("/auth/me", func(c *gin.Context) { c.JSON(http.StatusOK, auth.CurrentUser(c)) })
+
+	// Supermarket portal: signed in AND role supermarket. The supermarket comes from
+	// the verified user, so nothing in the URL or body can point at another tenant.
+	pt := authed.Group("/portal", auth.RequireRole("supermarket"))
+	pt.GET("/branches", d.Portal.ListBranches)
+	pt.POST("/branches", bodyLimit(64<<10), d.Portal.CreateBranch)
+	pt.GET("/branches/:id", d.Portal.GetBranch)
+	pt.PUT("/branches/:id", bodyLimit(64<<10), d.Portal.UpdateBranch)
+	pt.DELETE("/branches/:id", d.Portal.DeleteBranch)
+	pt.GET("/offers", d.Portal.ListOffers)
+	pt.POST("/offers", bodyLimit(6<<20+64<<10), d.Portal.CreateOffer)
+	pt.GET("/offers/:id", d.Portal.GetOffer)
+	pt.PUT("/offers/:id", bodyLimit(6<<20+64<<10), d.Portal.UpdateOffer)
+	pt.DELETE("/offers/:id", d.Portal.DeleteOffer)
 
 	// Rendering runs headless Chrome, so only signed-in users may call it.
 	authed.POST("/render", renderHandler(d.Renderer))
@@ -107,5 +128,17 @@ func renderHandler(rn *render.Renderer) gin.HandlerFunc {
 			ctype = "image/jpeg"
 		}
 		c.Data(http.StatusOK, ctype, img)
+	}
+}
+
+// bodyLimit rejects oversized requests before anything is read.
+func bodyLimit(max int64) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		if c.Request.ContentLength > max {
+			apierr.PayloadTooLarge(c, "request body is too large")
+			return
+		}
+		c.Request.Body = http.MaxBytesReader(c.Writer, c.Request.Body, max)
+		c.Next()
 	}
 }
