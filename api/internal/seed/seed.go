@@ -16,8 +16,6 @@ import (
 
 const DemoPassword = "Offers@12345"
 
-const AdminEmail = "admin@offers.test"
-
 type market struct {
 	name, slug, phone, email string
 	branches                 [2][3]string // name, address, area
@@ -191,9 +189,6 @@ func seedLogins(ctx context.Context, db *gorm.DB, url, key string) error {
 		return db.WithContext(ctx).Create(&models.User{AuthUserID: authID, Email: email, Role: role, SupermarketID: smID}).Error
 	}
 
-	if err := link(AdminEmail, "admin", nil); err != nil {
-		return fmt.Errorf("admin login: %w", err)
-	}
 	for _, m := range markets {
 		var sm models.Supermarket
 		if err := db.WithContext(ctx).Where("slug = ?", m.slug).First(&sm).Error; err != nil {

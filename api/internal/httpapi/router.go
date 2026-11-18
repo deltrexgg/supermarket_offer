@@ -11,6 +11,7 @@ import (
 	"github.com/redis/go-redis/v9"
 	"gorm.io/gorm"
 
+	"github.com/deltrexgg/supermarket_offer/api/internal/admin"
 	"github.com/deltrexgg/supermarket_offer/api/internal/apierr"
 	"github.com/deltrexgg/supermarket_offer/api/internal/auth"
 	"github.com/deltrexgg/supermarket_offer/api/internal/portal"
@@ -25,6 +26,7 @@ type Deps struct {
 	Auth        *auth.Verifier
 	Portal      *portal.Handler
 	Public      *public.Handler
+	Admin       *admin.Handler
 	CORSOrigins string
 }
 
@@ -89,6 +91,22 @@ func NewRouter(d Deps) *gin.Engine {
 	pt.POST("/offers/:id/poster", bodyLimit(4<<10), d.Portal.CreatePoster)
 	pt.GET("/offers/:id/poster", d.Portal.DownloadPoster)
 	pt.GET("/offers/:id/poster/print", d.Portal.PrintPoster)
+
+	// Platform owner: signed in AND role admin.
+	ad := authed.Group("/admin", auth.RequireRole("admin"))
+	ad.GET("/stats", d.Admin.Stats)
+	ad.GET("/supermarkets", d.Admin.ListSupermarkets)
+	ad.PATCH("/supermarkets/:id/status", bodyLimit(4<<10), d.Admin.SetSupermarketStatus)
+	ad.GET("/areas", d.Admin.ListAreas)
+	ad.POST("/areas", bodyLimit(4<<10), d.Admin.CreateArea)
+	ad.PUT("/areas/:id", bodyLimit(4<<10), d.Admin.RenameArea)
+	ad.DELETE("/areas/:id", d.Admin.DeleteArea)
+	ad.GET("/categories", d.Admin.ListCategories)
+	ad.POST("/categories", bodyLimit(4<<10), d.Admin.CreateCategory)
+	ad.PUT("/categories/:id", bodyLimit(4<<10), d.Admin.RenameCategory)
+	ad.DELETE("/categories/:id", d.Admin.DeleteCategory)
+	ad.GET("/offers", d.Admin.ListOffers)
+	ad.DELETE("/offers/:id", d.Admin.DeleteOffer)
 
 	// Rendering runs headless Chrome, so only signed-in users may call it.
 	authed.POST("/render", renderHandler(d.Renderer))

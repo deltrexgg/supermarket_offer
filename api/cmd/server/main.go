@@ -12,6 +12,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 
+	"github.com/deltrexgg/supermarket_offer/api/internal/admin"
 	"github.com/deltrexgg/supermarket_offer/api/internal/auth"
 	"github.com/deltrexgg/supermarket_offer/api/internal/cache"
 	"github.com/deltrexgg/supermarket_offer/api/internal/config"
@@ -60,6 +61,20 @@ func main() {
 		cancelSeed()
 	}
 
+	if cfg.AdminEmail == "" {
+		log.Printf("admin: ADMIN_EMAIL and ADMIN_PASSWORD are not set, no admin login is created")
+	} else {
+		if cfg.SupabaseServiceRoleKey == "" {
+			log.Fatalf("config: SUPABASE_SERVICE_ROLE_KEY is needed to create the admin login")
+		}
+		admCtx, cancelAdm := context.WithTimeout(context.Background(), time.Minute)
+		if err := seed.EnsureAdmin(admCtx, gdb, cfg.SupabaseURL, cfg.SupabaseServiceRoleKey, cfg.AdminEmail, cfg.AdminPassword); err != nil {
+			cancelAdm()
+			log.Fatalf("admin: %v", err)
+		}
+		cancelAdm()
+	}
+
 	verifier, err := auth.NewVerifier(cfg.SupabaseURL, gdb)
 	if err != nil {
 		log.Fatalf("auth: %v", err)
@@ -90,6 +105,7 @@ func main() {
 		Handler: httpapi.NewRouter(httpapi.Deps{
 			DB: gdb, Redis: rdb, Renderer: rn, Auth: verifier,
 			Public: &public.Handler{DB: gdb, Redis: rdb, Store: store},
+			Admin:  &admin.Handler{DB: gdb, Redis: rdb, Store: store},
 			Portal: &portal.Handler{DB: gdb, Redis: rdb, Store: store, Renderer: rn, Admin: supabase.NewAdmin(cfg.SupabaseURL, cfg.SupabaseServiceRoleKey)}, CORSOrigins: cfg.CORSOrigins,
 		}),
 		ReadHeaderTimeout: 10 * time.Second,

@@ -5,7 +5,8 @@
 | Part | Folder | Port |
 |---|---|---|
 | API | `api/` (Go, Gin, GORM) | 8080 |
-| Supermarket portal and admin | `web-portal/` (Next.js) | 3000 |
+| Supermarket portal | `web-portal/` (Next.js) | 3000 |
+| Platform admin | `web-admin/` (Next.js) | 3002 |
 | Public offers website | `web-public/` (Next.js) | 3001 |
 | PostgreSQL, login (Supabase Auth), image storage (S3 bucket) | Supabase (hosted, not in docker-compose) | n/a |
 | Redis 7 | docker-compose | 6379 |
@@ -24,7 +25,7 @@
 | `portal` | Branch and offer handlers and services | 2 |
 | `posters` | HTML templates and the Chromium renderer | 3 |
 | `public` | Listing, search, filters, sorting, Redis cache | 4 |
-| `admin` | Approvals, areas, categories, dashboard | 5 |
+| `admin` | Dashboard stats, supermarket approval, areas, categories, offer removal; `seed.EnsureAdmin` creates the env admin login | 5 |
 | `ai` | Claude API for descriptions and Arabic names (nice-to-have) | 7 |
 
 ## Key flows
@@ -63,7 +64,9 @@ The API holds the service-role key and the S3 keys. The portal gets only the pro
 
 ## Frontend
 
-**`web-portal`** (client-rendered, behind login): `/login`, `/register`, `/branches`, `/offers`, `/offers/new`, `/offers/[id]`, `/offers/[id]/poster`; admin under `/admin` (`/dashboard`, `/supermarkets`, `/areas`, `/categories`).
+**`web-portal`** (client-rendered, behind login): `/login`, `/register`, `/branches`, `/offers`, `/offers/new`, `/offers/[id]`, `/offers/[id]/poster`.
+
+**`web-admin`** (client-rendered, admin role only): `/login`, `/dashboard`, `/supermarkets`, `/lists` (areas and categories), `/offers`.
 
 **`web-public`** (server-rendered for SEO): `/` (listing, search, filters), `/offers/[id]` (detail with page title and meta tags per offer), English and Arabic with right-to-left layout.
 

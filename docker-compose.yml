@@ -22,11 +22,14 @@ services:
       PORT: 8080
       DATABASE_URL: ${DATABASE_URL:?Set DATABASE_URL in .env (Supabase session pooler URL)}
       REDIS_ADDR: redis:6379
-      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:3000,http://localhost:3001}
+      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:3000,http://localhost:3001,http://localhost:3002}
       CHROME_PATH: /usr/bin/chromium
       GIN_MODE: release
       # true = insert demo data (only into an empty database) and create the demo logins
       SEED: ${SEED:-false}
+      # Platform owner login, created in Supabase Auth on startup (leave both empty for no admin)
+      ADMIN_EMAIL: ${ADMIN_EMAIL:-}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-}
       # Supabase Auth: the API verifies access tokens and creates users (service role key stays here only)
       SUPABASE_URL: ${SUPABASE_URL:-}
       SUPABASE_SERVICE_ROLE_KEY: ${SUPABASE_SERVICE_ROLE_KEY:-}
@@ -71,6 +74,19 @@ services:
       - api
     ports:
       - "3001:3000"
+
+  web-admin:
+    build:
+      context: ./web-admin
+      args:
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:8080}
+        NEXT_PUBLIC_SUPABASE_URL: ${SUPABASE_URL:-}
+        NEXT_PUBLIC_SUPABASE_ANON_KEY: ${SUPABASE_ANON_KEY:-}
+    restart: unless-stopped
+    depends_on:
+      - api
+    ports:
+      - "3002:3000"
 
 volumes:
   redisdata:

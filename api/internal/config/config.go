@@ -3,6 +3,7 @@ package config
 import (
 	"errors"
 	"os"
+	"strings"
 )
 
 type Config struct {
@@ -13,6 +14,8 @@ type Config struct {
 	ChromePath    string
 	CORSOrigins   string
 	Seed          bool
+	AdminEmail    string
+	AdminPassword string
 
 	// Supabase Auth
 	SupabaseURL            string
@@ -43,6 +46,8 @@ func Load() Config {
 		ChromePath:    getenv("CHROME_PATH", ""),
 		CORSOrigins:   getenv("CORS_ORIGINS", "http://localhost:3000,http://localhost:3001"),
 		Seed:          getenv("SEED", "false") == "true",
+		AdminEmail:    strings.TrimSpace(getenv("ADMIN_EMAIL", "")),
+		AdminPassword: getenv("ADMIN_PASSWORD", ""),
 
 		SupabaseURL:            getenv("SUPABASE_URL", ""),
 		SupabaseServiceRoleKey: getenv("SUPABASE_SERVICE_ROLE_KEY", ""),
@@ -64,6 +69,12 @@ func (c Config) Validate() error {
 	}
 	if c.SupabaseURL == "" {
 		return errors.New("SUPABASE_URL is not set: the API needs it to verify logins")
+	}
+	if (c.AdminEmail == "") != (c.AdminPassword == "") {
+		return errors.New("set both ADMIN_EMAIL and ADMIN_PASSWORD, or neither")
+	}
+	if c.AdminPassword != "" && (len(c.AdminPassword) < 8 || len(c.AdminPassword) > 72) {
+		return errors.New("ADMIN_PASSWORD must be 8 to 72 characters")
 	}
 	return nil
 }

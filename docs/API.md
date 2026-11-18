@@ -55,7 +55,7 @@ Only offers that are active today in Dubai, from approved supermarkets.
 | GET | `/categories` | Filter options. |
 | GET | `/supermarkets` | Approved supermarkets, for the filter. |
 
-Caching: list and detail responses are stored in Redis under a key made from the query, the Dubai date and a version counter. The counter is bumped after every offer or branch change in the portal, and entries expire at Dubai midnight. If Redis is down the API reads the database. The `X-Cache` response header is `HIT` or `MISS`.
+Caching: list and detail responses are stored in Redis under a key made from the query, the Dubai date and a version counter. The counter is bumped after every offer or branch change in the portal and every admin change to a supermarket status, offer or lookup name, and entries expire at Dubai midnight. If Redis is down the API reads the database. The `X-Cache` response header is `HIT` or `MISS`.
 
 Validation: invalid list filters (for example an unknown `sort`) return `422` with field errors.
 
@@ -80,13 +80,17 @@ Upload rules: JPEG, PNG or WebP, checked by file signature (not just extension),
 
 ## Admin (role `admin`)
 
+The admin login comes from `ADMIN_EMAIL` and `ADMIN_PASSWORD` in `.env`; the API creates it on startup.
+
 | Method | Path | Notes |
 |---|---|---|
-| GET | `/admin/supermarkets` | `status` filter, paging. |
+| GET | `/admin/stats` | Dashboard counts: supermarkets by status, branches, offers active, upcoming, expired and ending within 2 days. |
+| GET | `/admin/supermarkets` | `status` (`pending`, `approved`, `blocked`), `q`, paging. Includes login email, branch and offer counts. Pending first. |
 | PATCH | `/admin/supermarkets/{id}/status` | Body: `status` (`approved`, `blocked`, `pending`). Refreshes the public cache. |
-| GET / POST | `/admin/areas`, `/admin/categories` | |
-| PUT / DELETE | `/admin/areas/{id}`, `/admin/categories/{id}` | `409` if still in use. |
-| GET | `/admin/dashboard` | `supermarkets_total`, `supermarkets_pending`, `offers_active_today`, `offers_expiring_today`. |
+| GET / POST | `/admin/areas`, `/admin/categories` | List includes `in_use`. Names are 2 to 80 characters, unique ignoring case (`409`). |
+| PUT / DELETE | `/admin/areas/{id}`, `/admin/categories/{id}` | Delete returns `409` while the area has branches or the category has offers. |
+| GET | `/admin/offers` | Every supermarket's offers. `status`, `supermarket`, `q`, paging. |
+| DELETE | `/admin/offers/{id}` | Removes the offer and its photo and poster files. Refreshes the public cache. |
 
 ## Health
 
