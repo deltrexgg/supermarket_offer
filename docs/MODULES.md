@@ -1,0 +1,68 @@
+# Module plan
+
+## Services
+
+| Part | Folder | Port |
+|---|---|---|
+| API | `api/` (Go, Gin, GORM) | 8080 |
+| Supermarket portal and admin | `web-portal/` (Next.js) | 3000 |
+| Public offers website | `web-public/` (Next.js) | 3001 |
+| PostgreSQL 16, Redis 7 | docker-compose | 5432, 6379 |
+
+## API packages (`api/internal/`)
+
+| Package | Responsibility | Phase |
+|---|---|---|
+| `config`, `db`, `cache`, `migrate` | Settings, Postgres, Redis, SQL migrations (done) | scaffold |
+| `models` | GORM structs matching the tables (done) | scaffold |
+| `dubaitime` | `Today()`, date parsing and "days left" in `Asia/Dubai` | 1 |
+| `auth` | bcrypt, JWT issue and verify, `RequireRole` middleware | 1 |
+| `tenant` | The only way to query tenant data: `Scope(db, supermarketID)` | 1 |
+| `httpapi` | Router, error format, validation helpers | 1 |
+| `storage` | `Storage` interface with a local-disk implementation (S3-ready) | 2 |
+| `portal` | Branch and offer handlers and services | 2 |
+| `posters` | HTML templates and the Chromium renderer | 3 |
+| `public` | Listing, search, filters, sorting, Redis cache | 4 |
+| `admin` | Approvals, areas, categories, dashboard | 5 |
+| `ai` | Claude API for descriptions and Arabic names (nice-to-have) | 7 |
+
+## Key flows
+
+### Tenant isolation
+1. Login issues a JWT containing `supermarket_id`.
+2. Middleware puts the supermarket ID in the request context. Handlers never read it from the URL or body.
+3. Every portal query goes through `tenant.Scope`, which adds `WHERE supermarket_id = ?`. A record from another supermarket is simply not found, so the API answers `404`.
+4. When an offer is saved, each submitted `branch_id` is checked against the same scope.
+5. Second layer: the composite foreign keys in the database reject cross-tenant links even if a check is missed.
+
+### Dubai time
+- `dubaitime.Today()` is the only place that decides "today". The server and browser time zones are never used.
+- The DB view `offers_with_status` uses the same rule, so the portal tabs and the public site always agree.
+- Go embeds timezone data (`time/tzdata`), because the slim runtime image has none.
+- The countdown in the browser is computed from `days_left` sent by the API, not from the browser clock.
+
+### Redis cache (public listing and search)
+- Key: `offers:v{version}:{dubai-date}:{hash of query}`. TTL: until the next Dubai midnight, so expired offers disappear without a cleanup job.
+- Any change to offers, supermarket status, branches, areas or categories runs `INCR offers:version` **after** the database commit. Old keys are never read again and expire on their own.
+- If Redis is down, the API serves from Postgres (slower, still correct).
+
+### Poster generation
+1. The offer is committed to the database.
+2. A Go HTML template (auto-escaped) renders the chosen template and language, using the offer, supermarket, logo and photo.
+3. The existing `chromedp` renderer turns it into an A4 PNG (1240 x 1754).
+4. The PNG is saved through `storage`, and `poster_path` is updated.
+5. The print view serves the same HTML with A4 print CSS.
+6. Regenerated when the offer is edited. Fonts for English and Arabic are installed in the API image.
+
+### Uploads
+Allowed types are checked by file signature, max 5 MB, stored under random names as `offers/{supermarket_id}/{uuid}.{ext}`. The key is what the database stores, so moving to cloud storage only changes the `storage` implementation.
+
+## Frontend
+
+**`web-portal`** (client-rendered, behind login): `/login`, `/register`, `/branches`, `/offers`, `/offers/new`, `/offers/[id]`, `/offers/[id]/poster`; admin under `/admin` (`/dashboard`, `/supermarkets`, `/areas`, `/categories`).
+
+**`web-public`** (server-rendered for SEO): `/` (listing, search, filters), `/offers/[id]` (detail with page title and meta tags per offer), English and Arabic with right-to-left layout.
+
+## Delivery phases
+
+0 plan and design, 1 foundation, 2 supermarket portal, 3 poster engine, 4 public site and cache, 5 admin, 6 hardening and docs, 7 nice-to-haves (Claude AI and Arabic).
