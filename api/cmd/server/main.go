@@ -16,8 +16,9 @@ import (
 	"github.com/deltrexgg/supermarket_offer/api/internal/config"
 	"github.com/deltrexgg/supermarket_offer/api/internal/db"
 	"github.com/deltrexgg/supermarket_offer/api/internal/httpapi"
-	"github.com/deltrexgg/supermarket_offer/api/internal/models"
+	"github.com/deltrexgg/supermarket_offer/api/internal/migrate"
 	"github.com/deltrexgg/supermarket_offer/api/internal/render"
+	"github.com/deltrexgg/supermarket_offer/api/migrations"
 )
 
 func main() {
@@ -30,9 +31,16 @@ func main() {
 	if err != nil {
 		log.Fatalf("database: %v", err)
 	}
-	if err := gdb.AutoMigrate(models.All()...); err != nil {
+	sqlDB, err := gdb.DB()
+	if err != nil {
+		log.Fatalf("database handle: %v", err)
+	}
+	migCtx, cancelMig := context.WithTimeout(context.Background(), 2*time.Minute)
+	if err := migrate.Up(migCtx, sqlDB, migrations.FS); err != nil {
+		cancelMig()
 		log.Fatalf("migrate: %v", err)
 	}
+	cancelMig()
 
 	rdb, err := cache.Connect(cfg.RedisAddr, cfg.RedisPassword)
 	if err != nil {
