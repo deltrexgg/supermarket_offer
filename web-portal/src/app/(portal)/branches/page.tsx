@@ -76,31 +76,31 @@ export default function BranchesPage() {
         <span className="spacer" />
         <button className="primary" onClick={() => { setFields({}); setError(""); setDraft({ ...empty }); }}>Add branch</button>
       </div>
-      {error && !draft && <p className="error">{error}</p>}
+      {error && !draft && <p className="error" role="alert">{error}</p>}
 
       {draft && (
         <form className="panel" onSubmit={save}>
           <h2>{draft.id ? "Edit branch" : "New branch"}</h2>
           <label>Name
             <input value={draft.name} onChange={(e) => setDraft({ ...draft, name: e.target.value })} required />
-            {fields.name && <span className="error">{fields.name}</span>}
+            {fields.name && <span className="error" role="alert">{fields.name}</span>}
           </label>
           <label>Area
             <select value={draft.area_id} onChange={(e) => setDraft({ ...draft, area_id: e.target.value })} required>
               <option value="">Choose an area</option>
               {areas.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}
             </select>
-            {fields.area_id && <span className="error">{fields.area_id}</span>}
+            {fields.area_id && <span className="error" role="alert">{fields.area_id}</span>}
           </label>
           <label>Address
             <input value={draft.address} onChange={(e) => setDraft({ ...draft, address: e.target.value })} required />
-            {fields.address && <span className="error">{fields.address}</span>}
+            {fields.address && <span className="error" role="alert">{fields.address}</span>}
           </label>
           <label>Phone (optional)
             <input value={draft.phone} onChange={(e) => setDraft({ ...draft, phone: e.target.value })} />
-            {fields.phone && <span className="error">{fields.phone}</span>}
+            {fields.phone && <span className="error" role="alert">{fields.phone}</span>}
           </label>
-          {error && <p className="error">{error}</p>}
+          {error && <p className="error" role="alert">{error}</p>}
           <div className="row">
             <button className="primary" disabled={busy}>{busy ? "Saving…" : "Save"}</button>
             <button type="button" onClick={() => setDraft(null)}>Cancel</button>

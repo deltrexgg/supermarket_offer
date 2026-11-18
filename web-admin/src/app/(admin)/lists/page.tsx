@@ -69,7 +69,7 @@ function LookupPanel({ title, path, usedBy }: { title: string; path: string; use
         <input value={name} onChange={(e) => setName(e.target.value)} placeholder={`New ${title.toLowerCase().slice(0, -1)}`} aria-label={`New ${title}`} required minLength={2} maxLength={80} />
         <button className="primary">Add</button>
       </form>
-      {error && <p className="error">{error}</p>}
+      {error && <p className="error" role="alert">{error}</p>}
       {!items ? <p className="muted">Loading…</p> : (
         <table>
           <tbody>

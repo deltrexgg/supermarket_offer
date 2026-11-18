@@ -35,7 +35,7 @@ export default function LoginPage() {
         <label>Password
           <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} required autoComplete="current-password" />
         </label>
-        {error && <p className="error">{error}</p>}
+        {error && <p className="error" role="alert">{error}</p>}
         <button className="primary" disabled={busy}>{busy ? "Signing in…" : "Sign in"}</button>
       </form>
     </main>

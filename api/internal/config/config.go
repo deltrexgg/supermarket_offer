@@ -3,6 +3,7 @@ package config
 import (
 	"errors"
 	"os"
+	"strconv"
 	"strings"
 )
 
@@ -16,6 +17,12 @@ type Config struct {
 	Seed          bool
 	AdminEmail    string
 	AdminPassword string
+
+	// TrustedProxies lists proxy addresses or CIDRs whose X-Forwarded-For header may be
+	// believed. Empty means no proxy is trusted and the socket address is the client IP.
+	TrustedProxies []string
+	// RateLimitPublic is the allowed requests per minute per IP on public routes.
+	RateLimitPublic int
 
 	// Supabase Auth
 	SupabaseURL            string
@@ -37,6 +44,23 @@ func getenv(key, fallback string) string {
 	return fallback
 }
 
+func splitList(s string) []string {
+	var out []string
+	for _, p := range strings.Split(s, ",") {
+		if p = strings.TrimSpace(p); p != "" {
+			out = append(out, p)
+		}
+	}
+	return out
+}
+
+func getint(key string, fallback int) int {
+	if v, err := strconv.Atoi(os.Getenv(key)); err == nil && v >= 0 {
+		return v
+	}
+	return fallback
+}
+
 func Load() Config {
 	return Config{
 		Port:          getenv("PORT", "8080"),
@@ -48,6 +72,9 @@ func Load() Config {
 		Seed:          getenv("SEED", "false") == "true",
 		AdminEmail:    strings.TrimSpace(getenv("ADMIN_EMAIL", "")),
 		AdminPassword: getenv("ADMIN_PASSWORD", ""),
+
+		TrustedProxies:  splitList(getenv("TRUSTED_PROXIES", "")),
+		RateLimitPublic: getint("RATE_LIMIT_PUBLIC", 600),
 
 		SupabaseURL:            getenv("SUPABASE_URL", ""),
 		SupabaseServiceRoleKey: getenv("SUPABASE_SERVICE_ROLE_KEY", ""),

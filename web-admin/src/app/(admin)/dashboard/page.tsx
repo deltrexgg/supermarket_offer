@@ -12,7 +12,7 @@ export default function DashboardPage() {
     api<Stats>("/admin/stats").then(setS).catch((e) => setError(e.message));
   }, []);
 
-  if (error) return <p className="error">{error}</p>;
+  if (error) return <p className="error" role="alert">{error}</p>;
   if (!s) return <p className="muted">Loading…</p>;
 
   const tile = (label: string, value: number, href?: string, hint?: string) => {

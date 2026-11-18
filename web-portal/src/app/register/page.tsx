@@ -44,21 +44,21 @@ export default function RegisterPage() {
       <form onSubmit={submit}>
         <label>Supermarket name
           <input value={form.name} onChange={set("name")} required />
-          {fields.name && <span className="error">{fields.name}</span>}
+          {fields.name && <span className="error" role="alert">{fields.name}</span>}
         </label>
         <label>Email
           <input type="email" value={form.email} onChange={set("email")} required autoComplete="email" />
-          {fields.email && <span className="error">{fields.email}</span>}
+          {fields.email && <span className="error" role="alert">{fields.email}</span>}
         </label>
         <label>Password (8+ characters)
           <input type="password" value={form.password} onChange={set("password")} required autoComplete="new-password" />
-          {fields.password && <span className="error">{fields.password}</span>}
+          {fields.password && <span className="error" role="alert">{fields.password}</span>}
         </label>
         <label>Phone (optional)
           <input value={form.phone} onChange={set("phone")} autoComplete="tel" />
-          {fields.phone && <span className="error">{fields.phone}</span>}
+          {fields.phone && <span className="error" role="alert">{fields.phone}</span>}
         </label>
-        {error && <p className="error">{error}</p>}
+        {error && <p className="error" role="alert">{error}</p>}
         <button className="primary" disabled={busy}>{busy ? "Creating…" : "Create account"}</button>
       </form>
       <p className="muted">Already registered? <Link href="/login">Sign in</Link></p>

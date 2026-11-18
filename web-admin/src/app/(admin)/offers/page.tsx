@@ -59,7 +59,7 @@ export default function OffersPage() {
         </div>
         <input className="search" placeholder="Search item or brand" value={q} onChange={(e) => { setQ(e.target.value); setPage(1); }} aria-label="Search offers" />
       </div>
-      {error && <p className="error">{error}</p>}
+      {error && <p className="error" role="alert">{error}</p>}
       {!data ? <p className="muted">Loading…</p> : data.items.length === 0 ? (
         <p className="muted">No offers match.</p>
       ) : (

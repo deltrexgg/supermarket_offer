@@ -51,3 +51,7 @@ func PayloadTooLarge(c *gin.Context, msg string) {
 func UnsupportedMedia(c *gin.Context, msg string) {
 	write(c, http.StatusUnsupportedMediaType, "unsupported_media_type", msg, nil)
 }
+
+func TooManyRequests(c *gin.Context, msg string) {
+	write(c, http.StatusTooManyRequests, "rate_limited", msg, nil)
+}

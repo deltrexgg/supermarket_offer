@@ -103,6 +103,11 @@ func positiveInt(s string) (uint, bool) {
 // cacheKey is offers:v{version}:{dubai date}:{name}:{hash of the normalised query}.
 // The date changes at Dubai midnight, the version after every portal change.
 func (h *Handler) cacheKey(ctx context.Context, name string, q url.Values) string {
+	return "offers:v" + cache.OffersVersion(ctx, h.Redis) + ":" + dubai.Today() + ":" + name + ":" + queryHash(q)
+}
+
+// queryHash is the same for the same query whatever the order of its parameters.
+func queryHash(q url.Values) string {
 	keys := make([]string, 0, len(q))
 	for k := range q {
 		keys = append(keys, k)
@@ -113,7 +118,7 @@ func (h *Handler) cacheKey(ctx context.Context, name string, q url.Values) strin
 		b.WriteString(k + "=" + strings.Join(q[k], ",") + "&")
 	}
 	sum := sha1.Sum([]byte(b.String()))
-	return "offers:v" + cache.OffersVersion(ctx, h.Redis) + ":" + dubai.Today() + ":" + name + ":" + hex.EncodeToString(sum[:8])
+	return hex.EncodeToString(sum[:8])
 }
 
 func (h *Handler) respond(c *gin.Context, key string, build func() ([]byte, error)) {

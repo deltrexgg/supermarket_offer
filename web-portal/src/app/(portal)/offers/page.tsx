@@ -197,7 +197,7 @@ export default function OffersPage() {
         <button className="primary" onClick={openNew} disabled={branches.length === 0}>New offer</button>
       </div>
       {branches.length === 0 && <p className="muted">Add a branch first: offers are sold at your branches.</p>}
-      {error && !draft && <p className="error">{error}</p>}
+      {error && !draft && <p className="error" role="alert">{error}</p>}
 
       {draft && (
         <form className="panel" onSubmit={save}>
@@ -205,38 +205,38 @@ export default function OffersPage() {
           <div className="grid">
             <label>Item name
               <input value={draft.item_name} onChange={set("item_name")} required />
-              {fields.item_name && <span className="error">{fields.item_name}</span>}
+              {fields.item_name && <span className="error" role="alert">{fields.item_name}</span>}
             </label>
             <label>Brand (optional)
               <input value={draft.brand} onChange={set("brand")} />
-              {fields.brand && <span className="error">{fields.brand}</span>}
+              {fields.brand && <span className="error" role="alert">{fields.brand}</span>}
             </label>
             <label>Unit (e.g. 1 L, 5 kg)
               <input value={draft.unit} onChange={set("unit")} required />
-              {fields.unit && <span className="error">{fields.unit}</span>}
+              {fields.unit && <span className="error" role="alert">{fields.unit}</span>}
             </label>
             <label>Category
               <select value={draft.category_id} onChange={set("category_id")} required>
                 <option value="">Choose a category</option>
                 {categories.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
               </select>
-              {fields.category_id && <span className="error">{fields.category_id}</span>}
+              {fields.category_id && <span className="error" role="alert">{fields.category_id}</span>}
             </label>
             <label>Regular price (AED)
               <input inputMode="decimal" value={draft.regular_price} onChange={set("regular_price")} required />
-              {fields.regular_price && <span className="error">{fields.regular_price}</span>}
+              {fields.regular_price && <span className="error" role="alert">{fields.regular_price}</span>}
             </label>
             <label>Offer price (AED)
               <input inputMode="decimal" value={draft.offer_price} onChange={set("offer_price")} required />
-              {fields.offer_price && <span className="error">{fields.offer_price}</span>}
+              {fields.offer_price && <span className="error" role="alert">{fields.offer_price}</span>}
             </label>
             <label>Valid from
               <input type="date" value={draft.valid_from} onChange={set("valid_from")} required />
-              {fields.valid_from && <span className="error">{fields.valid_from}</span>}
+              {fields.valid_from && <span className="error" role="alert">{fields.valid_from}</span>}
             </label>
             <label>Valid to
               <input type="date" value={draft.valid_to} onChange={set("valid_to")} required />
-              {fields.valid_to && <span className="error">{fields.valid_to}</span>}
+              {fields.valid_to && <span className="error" role="alert">{fields.valid_to}</span>}
             </label>
           </div>
 
@@ -248,7 +248,7 @@ export default function OffersPage() {
                 {b.name} <span className="muted">({b.area_name})</span>
               </label>
             ))}
-            {fields.branch_ids && <span className="error">{fields.branch_ids}</span>}
+            {fields.branch_ids && <span className="error" role="alert">{fields.branch_ids}</span>}
           </fieldset>
 
           <label>Photo (JPEG, PNG, WebP, GIF or AVIF, max 5 MB)
@@ -257,7 +257,7 @@ export default function OffersPage() {
           {/* eslint-disable-next-line @next/next/no-img-element */}
           {preview && <img className="thumb big" src={preview} alt="Offer photo preview" />}
 
-          {error && <p className="error">{error}</p>}
+          {error && <p className="error" role="alert">{error}</p>}
           <div className="row">
             <button className="primary" disabled={busy}>{busy ? "Saving…" : "Save offer"}</button>
             <button type="button" onClick={() => setDraft(null)}>Cancel</button>
@@ -285,7 +285,7 @@ export default function OffersPage() {
               {posterBusy ? "Creating…" : posterUrl ? "Create again" : "Create poster"}
             </button>
           </div>
-          {posterError && <p className="error">{posterError}</p>}
+          {posterError && <p className="error" role="alert">{posterError}</p>}
           {posterUrl && (
             <>
               {/* eslint-disable-next-line @next/next/no-img-element */}

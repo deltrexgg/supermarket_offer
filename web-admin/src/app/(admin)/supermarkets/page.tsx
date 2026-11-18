@@ -62,7 +62,7 @@ export default function SupermarketsPage() {
         </div>
         <input className="search" placeholder="Search by name" value={q} onChange={(e) => { setQ(e.target.value); setPage(1); }} aria-label="Search supermarkets" />
       </div>
-      {error && <p className="error">{error}</p>}
+      {error && <p className="error" role="alert">{error}</p>}
       {!data ? <p className="muted">Loading…</p> : data.items.length === 0 ? (
         <p className="muted">No supermarkets match.</p>
       ) : (

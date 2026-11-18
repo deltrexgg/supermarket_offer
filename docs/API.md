@@ -10,6 +10,10 @@ Base path: `/api/v1`. JSON in and out, except file uploads (`multipart/form-data
 - **Money:** AED, 2 decimals. **Dates:** `YYYY-MM-DD` Dubai calendar days.
 - **Pagination:** `page` (default 1) and `page_size` (default 20, max 50). Responses include `total`.
 
+### Limits and headers
+
+Per client IP, counted in Redis: public routes `RATE_LIMIT_PUBLIC` per minute (default 600), signed-in routes 300 per minute, `/admin` 120, poster creation 20, `/render` 10, registration 10 per hour. Every response has `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY` and `Referrer-Policy: no-referrer`; signed-in responses are `Cache-Control: no-store`.
+
 ### Error format
 
 ```json
@@ -23,11 +27,12 @@ Base path: `/api/v1`. JSON in and out, except file uploads (`multipart/form-data
 | 200 / 201 / 204 | OK / created / deleted |
 | 400 | Malformed JSON or query |
 | 401 | Missing or invalid token |
-| 403 | Wrong role, or supermarket is pending or blocked for this action |
+| 403 | Wrong role, or a valid login that has no account here |
 | 404 | Not found, or belongs to another supermarket |
 | 409 | Conflict, such as duplicate email or branch name |
 | 413 / 415 | Upload too large / unsupported file type |
 | 422 | Validation failed (`fields` filled in) |
+| 429 | Rate limit reached; `Retry-After` says how many seconds to wait |
 | 500 | Unexpected error (no internal details exposed) |
 
 ## Auth
@@ -35,7 +40,7 @@ Base path: `/api/v1`. JSON in and out, except file uploads (`multipart/form-data
 | Method | Path | Role | Notes |
 |---|---|---|---|
 | POST | `/auth/register` | public | Body: `name`, `email`, `password`, `phone`. Creates the Supabase user (email pre-confirmed), then the supermarket (`pending`) and its `users` row in one transaction. If that transaction fails, the Supabase user is deleted again. `201`. `409` if the email exists. |
-| GET | `/auth/me` | any signed-in | Current user, role and supermarket status. `403` if the supermarket is blocked. |
+| GET | `/auth/me` | any signed-in | Current user: `id`, `email`, `role`, `supermarket_id`. `403` if the login has no account. |
 
 There is no `/auth/login` endpoint: signing in is done by the web app directly with Supabase Auth.
 

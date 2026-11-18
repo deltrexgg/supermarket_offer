@@ -17,21 +17,23 @@
 |---|---|---|
 | `config`, `db`, `cache`, `migrate` | Settings, Postgres, Redis, SQL migrations (done) | scaffold |
 | `models` | GORM structs matching the tables (done) | scaffold |
-| `dubaitime` | `Today()`, date parsing and "days left" in `Asia/Dubai` | 1 |
+| `dubai` | `Today()`, `DateOffset`, date parsing and time until midnight in `Asia/Dubai` | 1 |
 | `auth` | Verifies Supabase access tokens (JWKS), looks up the `users` row, `RequireRole` middleware, Supabase admin client for register | 1 |
-| `tenant` | The only way to query tenant data: `Scope(db, supermarketID)` | 1 |
-| `httpapi` | Router, error format, validation helpers | 1 |
+| `tenant` | The only way to query tenant data: `Scope(supermarketID)` | 1 |
+| `httpapi` | Router, CORS, security headers, body limits | 1 |
+| `apierr` | The single error format | 1 |
 | `storage` | `Storage` interface with an S3 implementation for Supabase Storage (bucket `offer-media`) | 2 |
 | `portal` | Branch and offer handlers and services | 2 |
-| `posters` | HTML templates and the Chromium renderer | 3 |
+| `poster`, `render` | HTML templates and the Chromium renderer | 3 |
 | `public` | Listing, search, filters, sorting, Redis cache | 4 |
 | `admin` | Dashboard stats, supermarket approval, areas, categories, offer removal; `seed.EnsureAdmin` creates the env admin login | 5 |
+| `ratelimit` | Per-IP fixed-window limits counted in Redis | 6 |
 | `ai` | Claude API for descriptions and Arabic names (nice-to-have) | 7 |
 
 ## Key flows
 
 ### Tenant isolation
-1. The user signs in with Supabase Auth. The API verifies the access token, then loads the matching `users` row (by `auth_user_id`), which holds the role and `supermarket_id`. A blocked supermarket is refused here, so blocking takes effect on the next request.
+1. The user signs in with Supabase Auth. The API verifies the access token, then loads the matching `users` row (by `auth_user_id`), which holds the role and `supermarket_id`. A login with no `users` row is refused. (A blocked supermarket can still sign in to its portal; it is only hidden from the public site.)
 2. Middleware puts the supermarket ID in the request context. Handlers never read it from the URL or body.
 3. Every portal query goes through `tenant.Scope`, which adds `WHERE supermarket_id = ?`. A record from another supermarket is simply not found, so the API answers `404`.
 4. When an offer is saved, each submitted `branch_id` is checked against the same scope.
@@ -45,7 +47,7 @@
 
 ### Redis cache (public listing and search)
 - Key: `offers:v{version}:{dubai-date}:{hash of query}`. TTL: until the next Dubai midnight, so expired offers disappear without a cleanup job.
-- Any change to offers, supermarket status, branches, areas or categories runs `INCR offers:version` **after** the database commit. Old keys are never read again and expire on their own.
+- Any change to offers, branches, supermarket status, or an area or category name runs `INCR offers:version` **after** the database commit. Old keys are never read again and expire on their own.
 - If Redis is down, the API serves from Postgres (slower, still correct).
 
 ### Poster generation
@@ -57,18 +59,18 @@
 6. Regenerated when the offer is edited. Fonts for English and Arabic are installed in the API image.
 
 ### Uploads
-Allowed types are checked by file signature, max 5 MB, stored under random names as `offers/{supermarket_id}/{uuid}.{ext}` (posters as `posters/{offer_id}.png`) in the public Supabase bucket `offer-media`. The database stores only the key. The public URL is `PUBLIC_FILE_BASE_URL` + key.
+Allowed types are checked by file signature, max 5 MB, stored under random names as `offers/{supermarket_id}/{uuid}.{ext}` (posters as `posters/{offer_id}-{timestamp}.png`, a new name each time so caches never show an old poster). Allowed: JPEG, PNG, WebP, GIF, AVIF in the public Supabase bucket `offer-media`. The database stores only the key. The public URL is `PUBLIC_FILE_BASE_URL` + key.
 
 ### Supabase credentials
 The API holds the service-role key and the S3 keys. The portal gets only the project URL and the public (anon) key, and the public site gets none. Nothing secret is sent to a browser or committed to git.
 
 ## Frontend
 
-**`web-portal`** (client-rendered, behind login): `/login`, `/register`, `/branches`, `/offers`, `/offers/new`, `/offers/[id]`, `/offers/[id]/poster`.
+**`web-portal`** (client-rendered, behind login): `/login`, `/register`, `/branches`, `/offers` (list, form and poster panel on one page).
 
 **`web-admin`** (client-rendered, admin role only): `/login`, `/dashboard`, `/supermarkets`, `/lists` (areas and categories), `/offers`.
 
-**`web-public`** (server-rendered for SEO): `/` (listing, search, filters), `/offers/[id]` (detail with page title and meta tags per offer), English and Arabic with right-to-left layout.
+**`web-public`** (server-rendered): `/` (listing, search, filters, paging), `/offers/[id]` (detail with branches). English only for now; Arabic with right-to-left layout is planned for phase 7.
 
 ## Delivery phases
 

@@ -41,7 +41,7 @@ type Offer struct {
 	Status               string // upcoming | active | expired
 	DaysLeft             int
 	PhotoBytes           []byte // nil when the offer has no photo
-	PhotoType            string // image/jpeg | image/png | image/webp
+	PhotoType            string // image/jpeg | png | webp | gif | avif
 }
 
 type Shop struct {
@@ -162,7 +162,7 @@ func HTML(tpl, lang string, o Offer, s Shop, print bool) (string, error) {
 	}
 	if len(o.PhotoBytes) > 0 {
 		ct := o.PhotoType
-		if ct != "image/jpeg" && ct != "image/png" && ct != "image/webp" {
+		if ct != "image/jpeg" && ct != "image/png" && ct != "image/webp" && ct != "image/gif" && ct != "image/avif" {
 			ct = "image/jpeg"
 		}
 		v.PhotoURI = template.URL("data:" + ct + ";base64," + base64.StdEncoding.EncodeToString(o.PhotoBytes))

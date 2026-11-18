@@ -61,11 +61,54 @@ curl -X POST http://localhost:8080/api/v1/render \
 
 Options: `width`, `height`, `scale` (max 3), `format` (`png` or `jpeg`), `quality` (jpeg).
 
+## Settings (`.env`)
+
+| Setting | Needed | What it does |
+|---|---|---|
+| `DATABASE_URL` | yes | Supabase session pooler connection string. Percent-encode special characters in the password. |
+| `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY` | yes | Login. The anon key goes to the portal and admin builds; the service-role key stays in the API. |
+| `S3_ENDPOINT`, `S3_REGION`, `S3_BUCKET`, `S3_ACCESS_KEY_ID`, `S3_SECRET_ACCESS_KEY` | yes | Supabase Storage through its S3 API. |
+| `PUBLIC_FILE_BASE_URL` | yes | Where browsers load photos and posters: `https://REF.supabase.co/storage/v1/object/public/offer-media`. The bucket must be public. |
+| `ADMIN_EMAIL`, `ADMIN_PASSWORD` | no | The platform owner login, created on startup. Set both or neither. Password 8 to 72 characters. |
+| `SEED` | no | `true` fills an empty database with demo data and creates the demo supermarket logins. |
+| `CORS_ORIGINS` | yes | Web app addresses allowed to call the API: ports 3000, 3001 and 3002 locally. |
+| `NEXT_PUBLIC_API_URL` | yes | API address the browsers use. Baked into the web builds, so rebuild after changing it. |
+| `TRUSTED_PROXIES` | no | Proxy addresses or CIDRs whose `X-Forwarded-For` is believed. Leave empty unless the API sits behind a reverse proxy you control. |
+| `RATE_LIMIT_PUBLIC` | no | Public requests per minute per IP, default 600. `0` turns it off. |
+
+## Tests
+
+Unit tests cover the logic that needs no database: Dubai dates, the tenant filter, image type detection, poster HTML, cache keys and the rate limiter. They run inside the API build image, so Go is not needed on your computer:
+
+```bash
+docker build --target build -t offers-api-build ./api
+docker run --rm offers-api-build go test ./...
+```
+
+The smoke test checks a running stack end to end: public endpoints, sign-in required, roles, one supermarket not reaching another's data, and blocked or pending supermarkets staying off the public site. It needs the demo data (`SEED=true`) and `SUPABASE_URL` and `SUPABASE_ANON_KEY` in `.env`. Add `ADMIN_EMAIL` and `ADMIN_PASSWORD` to include the admin checks. It briefly sets Gulf Basket to blocked and pending, and always approves it again at the end.
+
+```bash
+node scripts/smoke.mjs
+# or, without Node on your computer:
+docker run --rm -v "${PWD}:/p" -w /p -e API_URL=http://host.docker.internal:8080 node:22-alpine node scripts/smoke.mjs
+```
+
+## Security notes
+
+- Passwords are handled only by Supabase Auth. The API verifies the signed access token and loads the user's role and supermarket from its own `users` table. A valid login with no row there gets nothing.
+- The supermarket always comes from that verified row, never from the URL or request body. Another supermarket's record is answered with `404`.
+- Uploads are checked by file signature (JPEG, PNG, WebP, GIF, AVIF; max 5 MB) and stored under random names.
+- Rate limits per IP, counted in Redis: public API (`RATE_LIMIT_PUBLIC`), 300 per minute for signed-in routes, 120 for `/admin`, 20 for poster creation, 10 for `/render`, 10 per hour for registration. Over the limit gives `429` with `Retry-After`. If Redis is down the limits are skipped.
+- Behind a reverse proxy, set `TRUSTED_PROXIES`. Without it the socket address is used as the client IP, so a forged `X-Forwarded-For` cannot dodge the limits. Note that the public website's own server calls the API from one container, so its visitors share one counter. That is why the public limit is high, and the answers are cached in Redis.
+- Responses carry `X-Content-Type-Options`, `X-Frame-Options` and `Referrer-Policy`. Signed-in responses are `no-store`.
+- Database row-level security is on with no policies, so Supabase's own public data API can read nothing.
+- A **blocked** or **pending** supermarket is hidden from the public site, but it can still sign in to its portal. Refusing the portal as well is not built yet.
+
 ## Notes
 
-- `api/go.sum` is generated on the first Docker build. Run `go mod tidy` in `api/` and commit it to pin versions.
-- The `/render` endpoint is unauthenticated for now. Put it behind auth before exposing it publicly.
-- Login code (Supabase token verification) and image uploads to the bucket are built in later phases. Their settings are already in `.env.example`.
+- `api/go.sum` is generated during the Docker build. To pin versions: `docker build --target build -t offers-api-build ./api`, then `docker create --name tmp offers-api-build`, `docker cp tmp:/src/go.sum api/go.sum`, `docker cp tmp:/src/go.mod api/go.mod`, `docker rm tmp`, and commit both files.
+- Everything here uses Dubai time (`Asia/Dubai`) for "today", whatever the server or browser time zone is.
+- Not built yet: Claude-written descriptions and Arabic names, and the English/Arabic switch on the public site.
 
 ## Troubleshooting
 

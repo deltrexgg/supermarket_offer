@@ -107,8 +107,12 @@ func main() {
 			Public: &public.Handler{DB: gdb, Redis: rdb, Store: store},
 			Admin:  &admin.Handler{DB: gdb, Redis: rdb, Store: store},
 			Portal: &portal.Handler{DB: gdb, Redis: rdb, Store: store, Renderer: rn, Admin: supabase.NewAdmin(cfg.SupabaseURL, cfg.SupabaseServiceRoleKey)}, CORSOrigins: cfg.CORSOrigins,
+			TrustedProxies: cfg.TrustedProxies, RateLimitPublic: cfg.RateLimitPublic,
 		}),
 		ReadHeaderTimeout: 10 * time.Second,
+		ReadTimeout:       30 * time.Second, // photo uploads are at most 5 MB
+		WriteTimeout:      90 * time.Second, // rendering a poster can take a while
+		IdleTimeout:       90 * time.Second,
 	}
 
 	go func() {

@@ -2,6 +2,7 @@ package httpapi
 
 import (
 	"context"
+	"log"
 	"net/http"
 	"strings"
 	"time"
@@ -16,6 +17,7 @@ import (
 	"github.com/deltrexgg/supermarket_offer/api/internal/auth"
 	"github.com/deltrexgg/supermarket_offer/api/internal/portal"
 	"github.com/deltrexgg/supermarket_offer/api/internal/public"
+	"github.com/deltrexgg/supermarket_offer/api/internal/ratelimit"
 	"github.com/deltrexgg/supermarket_offer/api/internal/render"
 )
 
@@ -28,11 +30,27 @@ type Deps struct {
 	Public      *public.Handler
 	Admin       *admin.Handler
 	CORSOrigins string
+
+	// TrustedProxies: proxies whose X-Forwarded-For is believed (empty: none).
+	TrustedProxies []string
+	// RateLimitPublic: requests per minute per IP on public routes (0 turns limits off).
+	RateLimitPublic int
 }
 
 func NewRouter(d Deps) *gin.Engine {
 	r := gin.New()
 	r.Use(gin.Logger(), gin.Recovery())
+	// Without this gin believes X-Forwarded-For from anyone, which would let a client
+	// choose its own IP and dodge the rate limits.
+	if err := r.SetTrustedProxies(d.TrustedProxies); err != nil {
+		log.Fatalf("config: TRUSTED_PROXIES: %v", err)
+	}
+	r.Use(securityHeaders())
+	counter := ratelimit.NewRedisCounter(d.Redis)
+	limit := func(name string, n int, window time.Duration) gin.HandlerFunc {
+		return ratelimit.Middleware(counter, name, n, window)
+	}
+	perMinute := d.RateLimitPublic
 	r.Use(cors.New(cors.Config{
 		AllowOrigins:     strings.Split(d.CORSOrigins, ","),
 		AllowMethods:     []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"},
@@ -64,15 +82,16 @@ func NewRouter(d Deps) *gin.Engine {
 	v1 := r.Group("/api/v1")
 
 	// Public routes.
-	v1.POST("/auth/register", bodyLimit(64<<10), d.Portal.Register)
-	v1.GET("/areas", d.Portal.Areas)
-	v1.GET("/categories", d.Portal.Categories)
-	v1.GET("/offers", d.Public.ListOffers)
-	v1.GET("/offers/:id", d.Public.GetOffer)
-	v1.GET("/supermarkets", d.Public.ListSupermarkets)
+	v1.POST("/auth/register", limit("register", 10, time.Hour), bodyLimit(64<<10), d.Portal.Register)
+	pub := v1.Group("", limit("public", perMinute, time.Minute))
+	pub.GET("/areas", d.Portal.Areas)
+	pub.GET("/categories", d.Portal.Categories)
+	pub.GET("/offers", d.Public.ListOffers)
+	pub.GET("/offers/:id", d.Public.GetOffer)
+	pub.GET("/supermarkets", d.Public.ListSupermarkets)
 
 	// Signed-in routes. Phase 2+ adds the supermarket and admin groups here.
-	authed := v1.Group("", d.Auth.Authenticate())
+	authed := v1.Group("", limit("authed", 300, time.Minute), noStore(), d.Auth.Authenticate())
 	authed.GET("/auth/me", func(c *gin.Context) { c.JSON(http.StatusOK, auth.CurrentUser(c)) })
 
 	// Supermarket portal: signed in AND role supermarket. The supermarket comes from
@@ -88,12 +107,12 @@ func NewRouter(d Deps) *gin.Engine {
 	pt.GET("/offers/:id", d.Portal.GetOffer)
 	pt.PUT("/offers/:id", bodyLimit(6<<20+64<<10), d.Portal.UpdateOffer)
 	pt.DELETE("/offers/:id", d.Portal.DeleteOffer)
-	pt.POST("/offers/:id/poster", bodyLimit(4<<10), d.Portal.CreatePoster)
+	pt.POST("/offers/:id/poster", limit("poster", 20, time.Minute), bodyLimit(4<<10), d.Portal.CreatePoster)
 	pt.GET("/offers/:id/poster", d.Portal.DownloadPoster)
 	pt.GET("/offers/:id/poster/print", d.Portal.PrintPoster)
 
 	// Platform owner: signed in AND role admin.
-	ad := authed.Group("/admin", auth.RequireRole("admin"))
+	ad := authed.Group("/admin", limit("admin", 120, time.Minute), auth.RequireRole("admin"))
 	ad.GET("/stats", d.Admin.Stats)
 	ad.GET("/supermarkets", d.Admin.ListSupermarkets)
 	ad.PATCH("/supermarkets/:id/status", bodyLimit(4<<10), d.Admin.SetSupermarketStatus)
@@ -109,7 +128,7 @@ func NewRouter(d Deps) *gin.Engine {
 	ad.DELETE("/offers/:id", d.Admin.DeleteOffer)
 
 	// Rendering runs headless Chrome, so only signed-in users may call it.
-	authed.POST("/render", renderHandler(d.Renderer))
+	authed.POST("/render", limit("render", 10, time.Minute), renderHandler(d.Renderer))
 
 	return r
 }
@@ -154,6 +173,25 @@ func renderHandler(rn *render.Renderer) gin.HandlerFunc {
 			ctype = "image/jpeg"
 		}
 		c.Data(http.StatusOK, ctype, img)
+	}
+}
+
+// securityHeaders adds the basic protective headers to every response.
+func securityHeaders() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		h := c.Writer.Header()
+		h.Set("X-Content-Type-Options", "nosniff")
+		h.Set("Referrer-Policy", "no-referrer")
+		h.Set("X-Frame-Options", "DENY")
+		c.Next()
+	}
+}
+
+// noStore keeps signed-in responses out of shared and browser caches.
+func noStore() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		c.Writer.Header().Set("Cache-Control", "no-store")
+		c.Next()
 	}
 }
 
