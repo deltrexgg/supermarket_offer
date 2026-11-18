@@ -19,6 +19,7 @@ import (
 	"github.com/deltrexgg/supermarket_offer/api/internal/httpapi"
 	"github.com/deltrexgg/supermarket_offer/api/internal/migrate"
 	"github.com/deltrexgg/supermarket_offer/api/internal/portal"
+	"github.com/deltrexgg/supermarket_offer/api/internal/public"
 	"github.com/deltrexgg/supermarket_offer/api/internal/render"
 	"github.com/deltrexgg/supermarket_offer/api/internal/seed"
 	"github.com/deltrexgg/supermarket_offer/api/internal/storage"
@@ -88,6 +89,7 @@ func main() {
 		Addr: ":" + cfg.Port,
 		Handler: httpapi.NewRouter(httpapi.Deps{
 			DB: gdb, Redis: rdb, Renderer: rn, Auth: verifier,
+			Public: &public.Handler{DB: gdb, Redis: rdb, Store: store},
 			Portal: &portal.Handler{DB: gdb, Redis: rdb, Store: store, Renderer: rn, Admin: supabase.NewAdmin(cfg.SupabaseURL, cfg.SupabaseServiceRoleKey)}, CORSOrigins: cfg.CORSOrigins,
 		}),
 		ReadHeaderTimeout: 10 * time.Second,

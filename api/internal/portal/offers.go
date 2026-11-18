@@ -326,6 +326,7 @@ func (h *Handler) ListOffers(c *gin.Context) {
 		q = q.Where("(item_name ILIKE ? OR brand ILIKE ?)", like, like)
 	}
 
+	q = q.Session(&gorm.Session{})
 	var total int64
 	if err := q.Count(&total).Error; err != nil {
 		apierr.Internal(c)

@@ -14,6 +14,7 @@ import (
 	"github.com/deltrexgg/supermarket_offer/api/internal/apierr"
 	"github.com/deltrexgg/supermarket_offer/api/internal/auth"
 	"github.com/deltrexgg/supermarket_offer/api/internal/portal"
+	"github.com/deltrexgg/supermarket_offer/api/internal/public"
 	"github.com/deltrexgg/supermarket_offer/api/internal/render"
 )
 
@@ -23,6 +24,7 @@ type Deps struct {
 	Renderer    *render.Renderer
 	Auth        *auth.Verifier
 	Portal      *portal.Handler
+	Public      *public.Handler
 	CORSOrigins string
 }
 
@@ -63,6 +65,9 @@ func NewRouter(d Deps) *gin.Engine {
 	v1.POST("/auth/register", bodyLimit(64<<10), d.Portal.Register)
 	v1.GET("/areas", d.Portal.Areas)
 	v1.GET("/categories", d.Portal.Categories)
+	v1.GET("/offers", d.Public.ListOffers)
+	v1.GET("/offers/:id", d.Public.GetOffer)
+	v1.GET("/supermarkets", d.Public.ListSupermarkets)
 
 	// Signed-in routes. Phase 2+ adds the supermarket and admin groups here.
 	authed := v1.Group("", d.Auth.Authenticate())

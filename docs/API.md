@@ -55,6 +55,10 @@ Only offers that are active today in Dubai, from approved supermarkets.
 | GET | `/categories` | Filter options. |
 | GET | `/supermarkets` | Approved supermarkets, for the filter. |
 
+Caching: list and detail responses are stored in Redis under a key made from the query, the Dubai date and a version counter. The counter is bumped after every offer or branch change in the portal, and entries expire at Dubai midnight. If Redis is down the API reads the database. The `X-Cache` response header is `HIT` or `MISS`.
+
+Validation: invalid list filters (for example an unknown `sort`) return `422` with field errors.
+
 An offer card contains: photo, item name, brand, unit, supermarket and logo, branch count, regular price, offer price, `discount_pct`, `days_left`.
 
 ## Supermarket portal (role `supermarket`)

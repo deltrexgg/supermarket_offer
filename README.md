@@ -43,7 +43,7 @@ Set `SEED=false` afterwards. The seed never touches a database that already has 
 
 - API health: http://localhost:8080/health
 - Portal: http://localhost:3000 (sign in with a demo login, or register a new supermarket; branches, offers and photo upload)
-- Public site: http://localhost:3001
+- Public site: http://localhost:3001 (search, filters by area, category and supermarket, sort, paging, offer detail with branches; responses cached in Redis, see the `X-Cache` header on `/api/v1/offers`)
 
 ## HTML to image
 
