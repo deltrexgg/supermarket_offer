@@ -28,10 +28,13 @@ CREATE TABLE supermarkets (
   updated_at timestamptz NOT NULL DEFAULT now()
 );
 
+-- Passwords live in Supabase Auth. This table only maps a Supabase user to a role
+-- and a supermarket. auth_user_id is the Supabase user's id (no foreign key, so the
+-- migration also applies to a plain local Postgres).
 CREATE TABLE users (
   id             bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+  auth_user_id   uuid   NOT NULL UNIQUE,
   email          citext NOT NULL UNIQUE,
-  password_hash  text   NOT NULL,                 -- bcrypt/argon2, never plain text
   role           user_role NOT NULL,
   supermarket_id bigint UNIQUE REFERENCES supermarkets(id) ON DELETE CASCADE,
   created_at     timestamptz NOT NULL DEFAULT now(),
@@ -107,7 +110,7 @@ SELECT o.*,
 FROM offers o
 CROSS JOIN LATERAL (SELECT (now() AT TIME ZONE 'Asia/Dubai')::date AS today) d;
 
-CREATE FUNCTION set_updated_at() RETURNS trigger LANGUAGE plpgsql AS
+CREATE FUNCTION set_updated_at() RETURNS trigger LANGUAGE plpgsql SET search_path = '' AS
 $$ BEGIN NEW.updated_at = now(); RETURN NEW; END $$;
 
 CREATE TRIGGER supermarkets_touch BEFORE UPDATE ON supermarkets
@@ -116,3 +119,18 @@ CREATE TRIGGER branches_touch BEFORE UPDATE ON branches
   FOR EACH ROW EXECUTE FUNCTION set_updated_at();
 CREATE TRIGGER offers_touch BEFORE UPDATE ON offers
   FOR EACH ROW EXECUTE FUNCTION set_updated_at();
+
+-- Supabase exposes public tables to the internet through its Data API. Row-level
+-- security with no policies denies every Data API request. The Go API connects as the
+-- postgres role, which bypasses these rules, so the app is unaffected.
+ALTER TABLE areas          ENABLE ROW LEVEL SECURITY;
+ALTER TABLE categories     ENABLE ROW LEVEL SECURITY;
+ALTER TABLE supermarkets   ENABLE ROW LEVEL SECURITY;
+ALTER TABLE users          ENABLE ROW LEVEL SECURITY;
+ALTER TABLE branches       ENABLE ROW LEVEL SECURITY;
+ALTER TABLE offers         ENABLE ROW LEVEL SECURITY;
+ALTER TABLE offer_branches ENABLE ROW LEVEL SECURITY;
+
+-- A view runs with its owner's rights by default, which would skip the rules above.
+-- security_invoker makes it obey the caller's rights instead.
+ALTER VIEW offers_with_status SET (security_invoker = true);

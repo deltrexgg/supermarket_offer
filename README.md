@@ -5,17 +5,30 @@ Offer platform for supermarkets: a merchant portal and a public deals website.
 | Part | Tech | Port |
 |---|---|---|
 | `api/` | Go, Gin, GORM | 8080 |
-| `web-portal/` | Next.js (merchant portal) | 3000 |
+| `web-portal/` | Next.js (merchant portal and admin) | 3000 |
 | `web-public/` | Next.js (public website) | 3001 |
-| postgres | PostgreSQL 16 | 5432 |
-| redis | Redis 7 | 6379 |
+| Database | PostgreSQL on Supabase | hosted |
+| Login | Supabase Auth | hosted |
+| Images | Supabase Storage (S3 bucket) | hosted |
+| redis | Redis 7 (docker-compose) | 6379 |
+
+Design docs are in `docs/` (`SCHEMA.md`, `API.md`, `MODULES.md`).
+
+## Set up Supabase (once)
+
+1. Create a Supabase project.
+2. **Database:** Project Settings > Database > Connection string > **Session pooler**. Copy it into `DATABASE_URL` (port 5432, `sslmode=require`). Do not use the transaction pooler (port 6543): the migration runner needs a session-level lock and GORM uses prepared statements.
+3. **Auth:** Project Settings > API. Copy the project URL, the public (anon) key and the service-role key. The service-role key is secret and only the API uses it.
+4. **Storage:** create a **public** bucket named `offer-media`, then Storage > S3 Connection to get the endpoint, region and access keys.
+5. `cp .env.example .env` and fill in the values. Never commit `.env`.
 
 ## Run
 
 ```bash
-cp .env.example .env
 docker compose up --build
 ```
+
+On start the API applies the SQL migrations in `api/migrations/` to your Supabase database (look for `migrate: applied 0001_init.sql` in the log).
 
 - API health: http://localhost:8080/health
 - Portal: http://localhost:3000
@@ -38,3 +51,4 @@ Options: `width`, `height`, `scale` (max 3), `format` (`png` or `jpeg`), `qualit
 
 - `api/go.sum` is generated on the first Docker build. Run `go mod tidy` in `api/` and commit it to pin versions.
 - The `/render` endpoint is unauthenticated for now. Put it behind auth before exposing it publicly.
+- Login code (Supabase token verification) and image uploads to the bucket are built in later phases. Their settings are already in `.env.example`.

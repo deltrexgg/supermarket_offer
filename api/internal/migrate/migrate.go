@@ -41,6 +41,10 @@ func Up(ctx context.Context, db *sql.DB, files fs.FS) error {
 		)`); err != nil {
 		return fmt.Errorf("migrate: create schema_migrations: %w", err)
 	}
+	// Keep this bookkeeping table off Supabase's public Data API too.
+	if _, err := db.ExecContext(ctx, `ALTER TABLE schema_migrations ENABLE ROW LEVEL SECURITY`); err != nil {
+		return fmt.Errorf("migrate: secure schema_migrations: %w", err)
+	}
 
 	applied, err := loadApplied(ctx, db)
 	if err != nil {

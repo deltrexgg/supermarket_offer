@@ -7,7 +7,8 @@
 | API | `api/` (Go, Gin, GORM) | 8080 |
 | Supermarket portal and admin | `web-portal/` (Next.js) | 3000 |
 | Public offers website | `web-public/` (Next.js) | 3001 |
-| PostgreSQL 16, Redis 7 | docker-compose | 5432, 6379 |
+| PostgreSQL, login (Supabase Auth), image storage (S3 bucket) | Supabase (hosted, not in docker-compose) | n/a |
+| Redis 7 | docker-compose | 6379 |
 
 ## API packages (`api/internal/`)
 
@@ -16,10 +17,10 @@
 | `config`, `db`, `cache`, `migrate` | Settings, Postgres, Redis, SQL migrations (done) | scaffold |
 | `models` | GORM structs matching the tables (done) | scaffold |
 | `dubaitime` | `Today()`, date parsing and "days left" in `Asia/Dubai` | 1 |
-| `auth` | bcrypt, JWT issue and verify, `RequireRole` middleware | 1 |
+| `auth` | Verifies Supabase access tokens (JWKS), looks up the `users` row, `RequireRole` middleware, Supabase admin client for register | 1 |
 | `tenant` | The only way to query tenant data: `Scope(db, supermarketID)` | 1 |
 | `httpapi` | Router, error format, validation helpers | 1 |
-| `storage` | `Storage` interface with a local-disk implementation (S3-ready) | 2 |
+| `storage` | `Storage` interface with an S3 implementation for Supabase Storage (bucket `offer-media`) | 2 |
 | `portal` | Branch and offer handlers and services | 2 |
 | `posters` | HTML templates and the Chromium renderer | 3 |
 | `public` | Listing, search, filters, sorting, Redis cache | 4 |
@@ -29,7 +30,7 @@
 ## Key flows
 
 ### Tenant isolation
-1. Login issues a JWT containing `supermarket_id`.
+1. The user signs in with Supabase Auth. The API verifies the access token, then loads the matching `users` row (by `auth_user_id`), which holds the role and `supermarket_id`. A blocked supermarket is refused here, so blocking takes effect on the next request.
 2. Middleware puts the supermarket ID in the request context. Handlers never read it from the URL or body.
 3. Every portal query goes through `tenant.Scope`, which adds `WHERE supermarket_id = ?`. A record from another supermarket is simply not found, so the API answers `404`.
 4. When an offer is saved, each submitted `branch_id` is checked against the same scope.
@@ -55,7 +56,10 @@
 6. Regenerated when the offer is edited. Fonts for English and Arabic are installed in the API image.
 
 ### Uploads
-Allowed types are checked by file signature, max 5 MB, stored under random names as `offers/{supermarket_id}/{uuid}.{ext}`. The key is what the database stores, so moving to cloud storage only changes the `storage` implementation.
+Allowed types are checked by file signature, max 5 MB, stored under random names as `offers/{supermarket_id}/{uuid}.{ext}` (posters as `posters/{offer_id}.png`) in the public Supabase bucket `offer-media`. The database stores only the key. The public URL is `PUBLIC_FILE_BASE_URL` + key.
+
+### Supabase credentials
+The API holds the service-role key and the S3 keys. The portal gets only the project URL and the public (anon) key, and the public site gets none. Nothing secret is sent to a browser or committed to git.
 
 ## Frontend
 

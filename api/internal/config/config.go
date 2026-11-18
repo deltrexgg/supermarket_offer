@@ -1,6 +1,9 @@
 package config
 
-import "os"
+import (
+	"errors"
+	"os"
+)
 
 type Config struct {
 	Port          string
@@ -9,6 +12,18 @@ type Config struct {
 	RedisPassword string
 	ChromePath    string
 	CORSOrigins   string
+
+	// Supabase Auth
+	SupabaseURL            string
+	SupabaseServiceRoleKey string
+
+	// Supabase Storage (S3-compatible)
+	S3Endpoint        string
+	S3Region          string
+	S3Bucket          string
+	S3AccessKeyID     string
+	S3SecretAccessKey string
+	PublicFileBaseURL string
 }
 
 func getenv(key, fallback string) string {
@@ -21,10 +36,29 @@ func getenv(key, fallback string) string {
 func Load() Config {
 	return Config{
 		Port:          getenv("PORT", "8080"),
-		DatabaseURL:   getenv("DATABASE_URL", "postgres://supermarket:supermarket@localhost:5432/supermarket?sslmode=disable"),
+		DatabaseURL:   getenv("DATABASE_URL", ""),
 		RedisAddr:     getenv("REDIS_ADDR", "localhost:6379"),
 		RedisPassword: getenv("REDIS_PASSWORD", ""),
 		ChromePath:    getenv("CHROME_PATH", ""),
 		CORSOrigins:   getenv("CORS_ORIGINS", "http://localhost:3000,http://localhost:3001"),
+
+		SupabaseURL:            getenv("SUPABASE_URL", ""),
+		SupabaseServiceRoleKey: getenv("SUPABASE_SERVICE_ROLE_KEY", ""),
+
+		S3Endpoint:        getenv("S3_ENDPOINT", ""),
+		S3Region:          getenv("S3_REGION", ""),
+		S3Bucket:          getenv("S3_BUCKET", "offer-media"),
+		S3AccessKeyID:     getenv("S3_ACCESS_KEY_ID", ""),
+		S3SecretAccessKey: getenv("S3_SECRET_ACCESS_KEY", ""),
+		PublicFileBaseURL: getenv("PUBLIC_FILE_BASE_URL", ""),
 	}
+}
+
+// Validate stops the app at startup when something it cannot run without is missing.
+// Supabase Auth and S3 settings are checked later, by the features that use them.
+func (c Config) Validate() error {
+	if c.DatabaseURL == "" {
+		return errors.New("DATABASE_URL is not set: use your Supabase session pooler connection string")
+	}
+	return nil
 }

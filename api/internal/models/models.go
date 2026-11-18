@@ -25,10 +25,12 @@ type Supermarket struct {
 	UpdatedAt time.Time `json:"updated_at"`
 }
 
+// User links a Supabase Auth user (AuthUserID) to a role and a supermarket.
+// Passwords are stored and hashed by Supabase, never by this app.
 type User struct {
 	ID            uint      `gorm:"primaryKey" json:"id"`
+	AuthUserID    string    `json:"-"` // Supabase user id (uuid)
 	Email         string    `json:"email"`
-	PasswordHash  string    `json:"-"`
 	Role          string    `json:"role"` // admin | supermarket
 	SupermarketID *uint     `json:"supermarket_id"`
 	CreatedAt     time.Time `json:"created_at"`

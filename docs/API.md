@@ -4,9 +4,9 @@ Base path: `/api/v1`. JSON in and out, except file uploads (`multipart/form-data
 
 ## Conventions
 
-- **Auth:** `Authorization: Bearer <JWT>`. The token carries `user_id`, `role` and `supermarket_id`. Passwords are hashed with bcrypt.
+- **Auth:** Supabase Auth. The web apps sign in with `supabase-js` and send the Supabase access token as `Authorization: Bearer <token>`. The API verifies it against the project's public keys (JWKS), then looks the user up in `users` by `auth_user_id` to get the role and supermarket. Supabase stores the hashed passwords.
 - **Roles:** `public` (no token), `supermarket`, `admin`. A route checks its role first, then ownership.
-- **Tenant isolation:** the supermarket is always taken from the token, never from the URL or body. Another supermarket's record returns `404`, as if it did not exist.
+- **Tenant isolation:** the supermarket comes from the `users` row of the verified token, never from the URL or body. Another supermarket's record returns `404`, as if it did not exist.
 - **Money:** AED, 2 decimals. **Dates:** `YYYY-MM-DD` Dubai calendar days.
 - **Pagination:** `page` (default 1) and `page_size` (default 20, max 50). Responses include `total`.
 
@@ -34,9 +34,10 @@ Base path: `/api/v1`. JSON in and out, except file uploads (`multipart/form-data
 
 | Method | Path | Role | Notes |
 |---|---|---|---|
-| POST | `/auth/register` | public | Body: `name`, `email`, `password`, `phone`. Creates a supermarket (`pending`) and its user in one transaction. `201`. |
-| POST | `/auth/login` | public | Body: `email`, `password`. Returns `{ token, user }`. `403` if the supermarket is blocked. |
-| GET | `/auth/me` | any | Current user and supermarket status. |
+| POST | `/auth/register` | public | Body: `name`, `email`, `password`, `phone`. Creates the Supabase user (email pre-confirmed), then the supermarket (`pending`) and its `users` row in one transaction. If that transaction fails, the Supabase user is deleted again. `201`. `409` if the email exists. |
+| GET | `/auth/me` | any | Current user, role and supermarket status. `403` if the supermarket is blocked. |
+
+There is no `/auth/login` endpoint: signing in is done by the web app directly with Supabase Auth.
 
 ## Public
 
@@ -67,7 +68,7 @@ An offer card contains: photo, item name, brand, unit, supermarket and logo, bra
 | GET | `/portal/offers/{id}/poster/print` | Print-friendly A4 HTML view. |
 | POST | `/portal/ai/offer-text` | Nice-to-have. Body: item details. Returns `description` and `item_name_ar` from Claude. |
 
-Upload rules: JPEG, PNG or WebP, checked by file signature (not just extension), max 5 MB, stored under a random name.
+Upload rules: JPEG, PNG or WebP, checked by file signature (not just extension), max 5 MB, stored under a random name in the public Supabase Storage bucket `offer-media` (S3 API). Responses return a full file URL built from `PUBLIC_FILE_BASE_URL` and the stored key.
 
 ## Admin (role `admin`)
 
