@@ -1,6 +1,9 @@
 # ---- build ----
 FROM golang:1.24-bookworm AS build
 WORKDIR /src
+# Latest dependency versions can require a newer Go than this image ships (gin-contrib/cors
+# needs 1.26). GOTOOLCHAIN=auto lets Go download the exact toolchain it is asked for.
+ENV GOTOOLCHAIN=auto
 COPY . .
 # go.sum is generated on first build (run `go mod tidy` locally and commit it to pin versions)
 RUN go mod tidy && CGO_ENABLED=0 go build -o /out/server ./cmd/server
