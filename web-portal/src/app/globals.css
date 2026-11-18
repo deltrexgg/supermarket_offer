@@ -18,8 +18,8 @@ a { color: var(--brand); }
 .panel { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 1.25rem; display: grid; gap: .9rem; }
 .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: .9rem; }
 label { display: grid; gap: .25rem; font-size: .9rem; font-weight: 500; }
-input, select { font: inherit; padding: .5rem .6rem; border: 1px solid var(--line); border-radius: 8px; background: #fff; }
-input:focus, select:focus { outline: 2px solid var(--brand); outline-offset: -1px; }
+input, select, textarea { font: inherit; padding: .5rem .6rem; border: 1px solid var(--line); border-radius: 8px; background: #fff; }
+input:focus, select:focus, textarea:focus { outline: 2px solid var(--brand); outline-offset: -1px; }
 fieldset { border: 1px solid var(--line); border-radius: 8px; display: grid; gap: .4rem; }
 .check { display: flex; align-items: center; gap: .5rem; font-weight: 400; }
 button { font: inherit; padding: .45rem .9rem; border: 1px solid var(--line); border-radius: 8px; background: #fff; cursor: pointer; }

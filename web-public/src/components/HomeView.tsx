@@ -3,26 +3,29 @@ import { Suspense } from "react";
 import Filters from "@/components/Filters";
 import OfferCard from "@/components/OfferCard";
 import { getAreas, getCategories, getOffers, getSupermarkets } from "@/lib/api";
+import { home, offersCount, pageLabel, strings, type Lang } from "@/lib/i18n";
 
 type SearchParams = Promise<Record<string, string | string[] | undefined>>;
 
 const first = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v);
 
-export default function Home({ searchParams }: { searchParams: SearchParams }) {
+export default function HomeView({ lang, searchParams }: { lang: Lang; searchParams: SearchParams }) {
+  const t = strings(lang);
   return (
     <>
       <section className="hero">
-        <h1>Today&apos;s supermarket offers in Dubai</h1>
-        <p className="muted">Compare live deals from supermarkets near you. Prices in AED.</p>
+        <h1>{t.heroTitle}</h1>
+        <p className="muted">{t.heroSub}</p>
       </section>
-      <Suspense fallback={<p className="muted">Loading offers…</p>}>
-        <Results searchParams={searchParams} />
+      <Suspense fallback={<p className="muted">{t.loadingOffers}</p>}>
+        <Results lang={lang} searchParams={searchParams} />
       </Suspense>
     </>
   );
 }
 
-async function Results({ searchParams }: { searchParams: SearchParams }) {
+async function Results({ lang, searchParams }: { lang: Lang; searchParams: SearchParams }) {
+  const t = strings(lang);
   const sp = await searchParams;
   const current = {
     q: first(sp.q), area: first(sp.area), category: first(sp.category),
@@ -39,7 +42,7 @@ async function Results({ searchParams }: { searchParams: SearchParams }) {
       getOffers(qs), getAreas(), getCategories(), getSupermarkets(),
     ]);
   } catch {
-    return <p className="error">Offers are unavailable right now. Please try again in a moment.</p>;
+    return <p className="error">{t.unavailable}</p>;
   }
 
   const pages = Math.max(1, Math.ceil(data.total / data.page_size));
@@ -47,27 +50,27 @@ async function Results({ searchParams }: { searchParams: SearchParams }) {
     const n = new URLSearchParams(qs);
     n.set("page", String(p));
     n.delete("page_size");
-    return `/?${n}`;
+    return `${home(lang)}?${n}`;
   };
   const filtered = Object.values(current).some(Boolean);
 
   return (
     <>
-      <Filters areas={areas} categories={categories} supermarkets={supermarkets} current={current} />
+      <Filters lang={lang} areas={areas} categories={categories} supermarkets={supermarkets} current={current} />
       <div className="bar">
-        <span className="count">{data.total} {data.total === 1 ? "offer" : "offers"}</span>
-        {filtered && <Link className="reset" href="/">Clear filters</Link>}
+        <span className="count">{offersCount(lang, data.total)}</span>
+        {filtered && <Link className="reset" href={home(lang)}>{t.clearFilters}</Link>}
       </div>
       {data.items.length === 0 ? (
-        <p className="empty">No offers match your search. Try a different word, or <Link href="/">clear the filters</Link>.</p>
+        <p className="empty">{t.emptyBefore}<Link href={home(lang)}>{t.emptyLink}</Link>{t.emptyAfter}</p>
       ) : (
-        <div className="grid">{data.items.map((o) => <OfferCard key={o.id} o={o} />)}</div>
+        <div className="grid">{data.items.map((o) => <OfferCard key={o.id} o={o} lang={lang} />)}</div>
       )}
       {pages > 1 && (
-        <nav className="pager" aria-label="Pages">
-          {page > 1 ? <Link href={link(page - 1)}>Previous</Link> : <span />}
-          <span className="muted">Page {page} of {pages}</span>
-          {page < pages ? <Link href={link(page + 1)}>Next</Link> : <span />}
+        <nav className="pager" aria-label={t.pagesLabel}>
+          {page > 1 ? <Link href={link(page - 1)}>{t.previous}</Link> : <span />}
+          <span className="muted">{pageLabel(lang, page, pages)}</span>
+          {page < pages ? <Link href={link(page + 1)}>{t.next}</Link> : <span />}
         </nav>
       )}
     </>

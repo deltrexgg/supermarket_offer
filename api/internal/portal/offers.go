@@ -49,15 +49,34 @@ func (h *Handler) toView(o models.OfferWithStatus, branchIDs []uint) offerView {
 }
 
 type offerInput struct {
-	ItemName   string
-	Brand      string
-	Unit       string
-	CategoryID uint
-	Regular    float64
-	Offer      float64
-	ValidFrom  string
-	ValidTo    string
-	BranchIDs  []uint
+	ItemName      string
+	ItemNameAr    string
+	Brand         string
+	Description   string
+	DescriptionAr string
+	Unit          string
+	CategoryID    uint
+	Regular       float64
+	Offer         float64
+	ValidFrom     string
+	ValidTo       string
+	BranchIDs     []uint
+}
+
+// optional is a pointer for a create, nil when the text is empty.
+func optional(s string) *string {
+	if s == "" {
+		return nil
+	}
+	return &s
+}
+
+// nullable is a value for an update map: SQL NULL when the text is empty.
+func nullable(s string) any {
+	if s == "" {
+		return nil
+	}
+	return s
 }
 
 func parsePrice(raw string) (float64, bool) {
@@ -76,14 +95,26 @@ func parsePrice(raw string) (float64, bool) {
 func readOfferForm(c *gin.Context, requireFutureEnd bool) (offerInput, apierr.Fields) {
 	f := apierr.Fields{}
 	in := offerInput{
-		ItemName:  strings.TrimSpace(c.PostForm("item_name")),
-		Brand:     strings.TrimSpace(c.PostForm("brand")),
-		Unit:      strings.TrimSpace(c.PostForm("unit")),
-		ValidFrom: strings.TrimSpace(c.PostForm("valid_from")),
-		ValidTo:   strings.TrimSpace(c.PostForm("valid_to")),
+		ItemName:      strings.TrimSpace(c.PostForm("item_name")),
+		ItemNameAr:    strings.TrimSpace(c.PostForm("item_name_ar")),
+		Description:   strings.TrimSpace(c.PostForm("description")),
+		DescriptionAr: strings.TrimSpace(c.PostForm("description_ar")),
+		Brand:         strings.TrimSpace(c.PostForm("brand")),
+		Unit:          strings.TrimSpace(c.PostForm("unit")),
+		ValidFrom:     strings.TrimSpace(c.PostForm("valid_from")),
+		ValidTo:       strings.TrimSpace(c.PostForm("valid_to")),
 	}
 	if l := len([]rune(in.ItemName)); l < 1 || l > 200 {
 		f.Add("item_name", "is required (max 200 characters)")
+	}
+	if len([]rune(in.ItemNameAr)) > 200 {
+		f.Add("item_name_ar", "must be at most 200 characters")
+	}
+	if len([]rune(in.Description)) > 1000 {
+		f.Add("description", "must be at most 1000 characters")
+	}
+	if len([]rune(in.DescriptionAr)) > 1000 {
+		f.Add("description_ar", "must be at most 1000 characters")
 	}
 	if len([]rune(in.Brand)) > 100 {
 		f.Add("brand", "must be at most 100 characters")
@@ -268,6 +299,9 @@ func (h *Handler) CreateOffer(c *gin.Context) {
 		b := in.Brand
 		offer.Brand = &b
 	}
+	offer.ItemNameAr = optional(in.ItemNameAr)
+	offer.Description = optional(in.Description)
+	offer.DescriptionAr = optional(in.DescriptionAr)
 	var key string
 	if img != nil {
 		key = photoKey(smID, img.Ext)
@@ -420,6 +454,8 @@ func (h *Handler) UpdateOffer(c *gin.Context) {
 		"category_id": in.CategoryID, "item_name": in.ItemName, "brand": brand, "unit": in.Unit,
 		"regular_price": in.Regular, "offer_price": in.Offer,
 		"valid_from": in.ValidFrom, "valid_to": in.ValidTo,
+		"item_name_ar": nullable(in.ItemNameAr), "description": nullable(in.Description),
+		"description_ar": nullable(in.DescriptionAr),
 	}
 	// Any edit makes the saved poster out of date, so it is cleared.
 	updates["poster_path"] = nil

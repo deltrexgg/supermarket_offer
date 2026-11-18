@@ -11,6 +11,7 @@ import (
 	"github.com/redis/go-redis/v9"
 	"gorm.io/gorm"
 
+	"github.com/deltrexgg/supermarket_offer/api/internal/ai"
 	"github.com/deltrexgg/supermarket_offer/api/internal/auth"
 	"github.com/deltrexgg/supermarket_offer/api/internal/render"
 	"github.com/deltrexgg/supermarket_offer/api/internal/storage"
@@ -23,6 +24,7 @@ type Handler struct {
 	Store    storage.Store
 	Admin    *supabase.Admin
 	Renderer *render.Renderer
+	AI       *ai.Client // nil when ANTHROPIC_API_KEY is not set
 }
 
 // supermarketID is the tenant of the request. RequireRole("supermarket") runs

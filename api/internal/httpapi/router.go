@@ -107,6 +107,7 @@ func NewRouter(d Deps) *gin.Engine {
 	pt.GET("/offers/:id", d.Portal.GetOffer)
 	pt.PUT("/offers/:id", bodyLimit(6<<20+64<<10), d.Portal.UpdateOffer)
 	pt.DELETE("/offers/:id", d.Portal.DeleteOffer)
+	pt.POST("/ai/offer-text", limit("ai", 10, time.Minute), bodyLimit(8<<10), d.Portal.AIOfferText)
 	pt.POST("/offers/:id/poster", limit("poster", 20, time.Minute), bodyLimit(4<<10), d.Portal.CreatePoster)
 	pt.GET("/offers/:id/poster", d.Portal.DownloadPoster)
 	pt.GET("/offers/:id/poster/print", d.Portal.PrintPoster)

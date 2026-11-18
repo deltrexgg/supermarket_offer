@@ -24,6 +24,10 @@ type Config struct {
 	// RateLimitPublic is the allowed requests per minute per IP on public routes.
 	RateLimitPublic int
 
+	// Claude, for the offer text suggestions. Empty key turns the feature off.
+	AnthropicAPIKey string
+	AnthropicModel  string
+
 	// Supabase Auth
 	SupabaseURL            string
 	SupabaseServiceRoleKey string
@@ -75,6 +79,9 @@ func Load() Config {
 
 		TrustedProxies:  splitList(getenv("TRUSTED_PROXIES", "")),
 		RateLimitPublic: getint("RATE_LIMIT_PUBLIC", 600),
+
+		AnthropicAPIKey: getenv("ANTHROPIC_API_KEY", ""),
+		AnthropicModel:  getenv("ANTHROPIC_MODEL", "claude-haiku-5-5"),
 
 		SupabaseURL:            getenv("SUPABASE_URL", ""),
 		SupabaseServiceRoleKey: getenv("SUPABASE_SERVICE_ROLE_KEY", ""),

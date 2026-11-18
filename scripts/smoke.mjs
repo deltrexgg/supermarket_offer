@@ -112,6 +112,8 @@ async function auth(tokens) {
     const r = await call(path);
     check(`GET ${path} without a token is 401`, r.status === 401, `status ${r.status}`);
   }
+  const ai = await call("/portal/ai/offer-text", { method: "POST", body: { item_name: "Milk" } });
+  check("POST /portal/ai/offer-text without a token is 401", ai.status === 401, `status ${ai.status}`);
   const junk = await call("/auth/me", { token: "not.a.token" });
   check("a made-up token is 401", junk.status === 401, `status ${junk.status}`);
   const me = await call("/auth/me", { token: tokens.noor });

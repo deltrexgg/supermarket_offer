@@ -13,6 +13,7 @@ import (
 	"github.com/gin-gonic/gin"
 
 	"github.com/deltrexgg/supermarket_offer/api/internal/admin"
+	"github.com/deltrexgg/supermarket_offer/api/internal/ai"
 	"github.com/deltrexgg/supermarket_offer/api/internal/auth"
 	"github.com/deltrexgg/supermarket_offer/api/internal/cache"
 	"github.com/deltrexgg/supermarket_offer/api/internal/config"
@@ -106,7 +107,7 @@ func main() {
 			DB: gdb, Redis: rdb, Renderer: rn, Auth: verifier,
 			Public: &public.Handler{DB: gdb, Redis: rdb, Store: store},
 			Admin:  &admin.Handler{DB: gdb, Redis: rdb, Store: store},
-			Portal: &portal.Handler{DB: gdb, Redis: rdb, Store: store, Renderer: rn, Admin: supabase.NewAdmin(cfg.SupabaseURL, cfg.SupabaseServiceRoleKey)}, CORSOrigins: cfg.CORSOrigins,
+			Portal: &portal.Handler{DB: gdb, Redis: rdb, Store: store, Renderer: rn, Admin: supabase.NewAdmin(cfg.SupabaseURL, cfg.SupabaseServiceRoleKey), AI: ai.New(cfg.AnthropicAPIKey, cfg.AnthropicModel)}, CORSOrigins: cfg.CORSOrigins,
 			TrustedProxies: cfg.TrustedProxies, RateLimitPublic: cfg.RateLimitPublic,
 		}),
 		ReadHeaderTimeout: 10 * time.Second,

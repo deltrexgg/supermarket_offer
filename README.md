@@ -46,7 +46,7 @@ Set `SEED=false` afterwards. The seed never touches a database that already has 
 - API health: http://localhost:8080/health
 - Portal: http://localhost:3000 (sign in with a demo login, or register a new supermarket; branches, offers and photo upload)
 - Admin: http://localhost:3002 (sign in with `ADMIN_EMAIL` / `ADMIN_PASSWORD`: approve supermarkets, manage areas and categories, review offers)
-- Public site: http://localhost:3001 (search, filters by area, category and supermarket, sort, paging, offer detail with branches; responses cached in Redis, see the `X-Cache` header on `/api/v1/offers`)
+- Public site: http://localhost:3001 (search, filters by area, category and supermarket, sort, paging, offer detail with branches; responses cached in Redis, see the `X-Cache` header on `/api/v1/offers`). Arabic with right-to-left layout is at http://localhost:3001/ar, with a language switch in the header. `/robots.txt` and `/sitemap.xml` are generated too; the sitemap lists every active offer in both languages and is rebuilt when requested (cached ten minutes).
 
 ## HTML to image
 
@@ -73,6 +73,8 @@ Options: `width`, `height`, `scale` (max 3), `format` (`png` or `jpeg`), `qualit
 | `SEED` | no | `true` fills an empty database with demo data and creates the demo supermarket logins. |
 | `CORS_ORIGINS` | yes | Web app addresses allowed to call the API: ports 3000, 3001 and 3002 locally. |
 | `NEXT_PUBLIC_API_URL` | yes | API address the browsers use. Baked into the web builds, so rebuild after changing it. |
+| `ANTHROPIC_API_KEY`, `ANTHROPIC_MODEL` | no | Claude writes the Arabic item name and the English and Arabic descriptions when a supermarket clicks "Suggest with Claude" in the portal. Without a key the button explains it is not set up and everything else works. The model defaults to `claude-haiku-5-5`. |
+| `SITE_URL` | no | The public address of the shopper website (no trailing slash), used for canonical links, `robots.txt` and `sitemap.xml`. Default `http://localhost:3001`. Baked into the build, so rebuild after changing it. |
 | `TRUSTED_PROXIES` | no | Proxy addresses or CIDRs whose `X-Forwarded-For` is believed. Leave empty unless the API sits behind a reverse proxy you control. |
 | `RATE_LIMIT_PUBLIC` | no | Public requests per minute per IP, default 600. `0` turns it off. |
 
@@ -108,7 +110,7 @@ docker run --rm -v "${PWD}:/p" -w /p -e API_URL=http://host.docker.internal:8080
 
 - `api/go.sum` is generated during the Docker build. To pin versions: `docker build --target build -t offers-api-build ./api`, then `docker create --name tmp offers-api-build`, `docker cp tmp:/src/go.sum api/go.sum`, `docker cp tmp:/src/go.mod api/go.mod`, `docker rm tmp`, and commit both files.
 - Everything here uses Dubai time (`Asia/Dubai`) for "today", whatever the server or browser time zone is.
-- Not built yet: Claude-written descriptions and Arabic names, and the English/Arabic switch on the public site.
+- Arabic names, descriptions and area, category and supermarket names: the first two are per offer; area, category and supermarket names stay in English on the Arabic site because the database has no Arabic columns for them.
 
 ## Troubleshooting
 

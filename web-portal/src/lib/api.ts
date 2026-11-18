@@ -53,7 +53,7 @@ export type Branch = {
   id: number; name: string; address: string; phone: string | null; area_id: number; area_name: string;
 };
 export type Offer = {
-  id: number; item_name: string; item_name_ar: string | null; brand: string | null; unit: string;
+  id: number; item_name: string; item_name_ar: string | null; description: string | null; description_ar: string | null; brand: string | null; unit: string;
   category_id: number; regular_price: number; offer_price: number; discount_pct: number;
   valid_from: string; valid_to: string; status: "upcoming" | "active" | "expired"; days_left: number;
   photo_url: string | null; poster_url: string | null; branch_ids: number[];
@@ -77,3 +77,5 @@ export async function apiBlob(path: string): Promise<Blob> {
   }
   return res.blob();
 }
+
+export type AiSuggestion = { item_name_ar: string; description: string; description_ar: string };

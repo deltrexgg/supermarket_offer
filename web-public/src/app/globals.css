@@ -55,3 +55,7 @@ button.primary { background: var(--brand); color: var(--brand-ink); border: 0; b
 .branches li { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; }
 .branches a { color: var(--brand); font-weight: 600; }
 @media (max-width: 720px) { .filters { grid-template-columns: 1fr 1fr; } .detail { grid-template-columns: 1fr; } }
+.bar-top { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.langswitch { font-weight: 700; color: var(--brand); border: 1px solid var(--line); border-radius: 999px; padding: 6px 14px; background: var(--surface); }
+.langswitch:hover { border-color: var(--brand); }
+[dir="rtl"] .back { display: inline-block; }

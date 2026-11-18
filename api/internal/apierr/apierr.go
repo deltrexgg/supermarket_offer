@@ -55,3 +55,8 @@ func UnsupportedMedia(c *gin.Context, msg string) {
 func TooManyRequests(c *gin.Context, msg string) {
 	write(c, http.StatusTooManyRequests, "rate_limited", msg, nil)
 }
+
+func BadGateway(c *gin.Context, msg string) { write(c, http.StatusBadGateway, "bad_gateway", msg, nil) }
+func ServiceUnavailable(c *gin.Context, msg string) {
+	write(c, http.StatusServiceUnavailable, "unavailable", msg, nil)
+}

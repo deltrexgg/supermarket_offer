@@ -35,6 +35,9 @@ services:
       TRUSTED_PROXIES: ${TRUSTED_PROXIES:-}
       # Requests per minute per IP on public routes (0 turns the limit off)
       RATE_LIMIT_PUBLIC: ${RATE_LIMIT_PUBLIC:-600}
+      # Claude writes the Arabic names and descriptions in the portal (leave the key empty to turn it off)
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      ANTHROPIC_MODEL: ${ANTHROPIC_MODEL:-claude-haiku-5-5}
       # Supabase Auth: the API verifies access tokens and creates users (service role key stays here only)
       SUPABASE_URL: ${SUPABASE_URL:-}
       SUPABASE_SERVICE_ROLE_KEY: ${SUPABASE_SERVICE_ROLE_KEY:-}
@@ -78,6 +81,7 @@ services:
       context: ./web-public
       args:
         NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:8080}
+        SITE_URL: ${SITE_URL:-http://localhost:3001}
     restart: unless-stopped
     environment:
       # Server-side page rendering reaches the API by its service name inside Docker.

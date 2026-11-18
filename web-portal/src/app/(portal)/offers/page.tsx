@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { api, apiBlob, ApiError, type Branch, type Category, type Offer, type Page } from "@/lib/api";
+import { api, apiBlob, ApiError, type AiSuggestion, type Branch, type Category, type Offer, type Page } from "@/lib/api";
 import { aed, dubaiToday, statusLabel } from "@/lib/format";
 
 const TABS = [
@@ -13,7 +13,8 @@ const TABS = [
 
 type Draft = {
   id?: number;
-  item_name: string; brand: string; unit: string; category_id: string;
+  item_name: string; item_name_ar: string; description: string; description_ar: string;
+  brand: string; unit: string; category_id: string;
   regular_price: string; offer_price: string; valid_from: string; valid_to: string;
   branch_ids: number[]; photoUrl: string | null;
 };
@@ -31,6 +32,8 @@ export default function OffersPage() {
   const [fields, setFields] = useState<Record<string, string>>({});
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
+  const [aiBusy, setAiBusy] = useState(false);
+  const [aiError, setAiError] = useState("");
   const [posterFor, setPosterFor] = useState<Offer | null>(null);
   const [tpl, setTpl] = useState("hot_deal");
   const [lang, setLang] = useState("en");
@@ -75,7 +78,7 @@ export default function OffersPage() {
     const today = dubaiToday();
     setFields({}); setError(""); setPhoto(null);
     setDraft({
-      item_name: "", brand: "", unit: "", category_id: "", regular_price: "", offer_price: "",
+      item_name: "", item_name_ar: "", description: "", description_ar: "", brand: "", unit: "", category_id: "", regular_price: "", offer_price: "",
       valid_from: today, valid_to: today, branch_ids: [], photoUrl: null,
     });
   }
@@ -84,7 +87,8 @@ export default function OffersPage() {
     setPosterFor(null);
     setFields({}); setError(""); setPhoto(null);
     setDraft({
-      id: o.id, item_name: o.item_name, brand: o.brand ?? "", unit: o.unit, category_id: String(o.category_id),
+      id: o.id, item_name: o.item_name, item_name_ar: o.item_name_ar ?? "",
+      description: o.description ?? "", description_ar: o.description_ar ?? "", brand: o.brand ?? "", unit: o.unit, category_id: String(o.category_id),
       regular_price: o.regular_price.toFixed(2), offer_price: o.offer_price.toFixed(2),
       valid_from: o.valid_from.slice(0, 10), valid_to: o.valid_to.slice(0, 10),
       branch_ids: o.branch_ids, photoUrl: o.photo_url,
@@ -97,6 +101,9 @@ export default function OffersPage() {
     setBusy(true); setError(""); setFields({});
     const fd = new FormData();
     fd.set("item_name", draft.item_name);
+    fd.set("item_name_ar", draft.item_name_ar);
+    fd.set("description", draft.description);
+    fd.set("description_ar", draft.description_ar);
     fd.set("brand", draft.brand);
     fd.set("unit", draft.unit);
     fd.set("category_id", draft.category_id);
@@ -118,6 +125,32 @@ export default function OffersPage() {
       } else setError("Could not save the offer.");
     }
     setBusy(false);
+  }
+
+  // Asks Claude for an Arabic name and descriptions. Nothing is saved until the owner saves the offer.
+  async function suggest() {
+    if (!draft) return;
+    setAiBusy(true); setAiError("");
+    try {
+      const r = await api<AiSuggestion>("/portal/ai/offer-text", {
+        method: "POST",
+        body: {
+          item_name: draft.item_name, brand: draft.brand, unit: draft.unit,
+          category_id: draft.category_id ? Number(draft.category_id) : 0,
+        },
+      });
+      setDraft({
+        ...draft,
+        item_name_ar: r.item_name_ar || draft.item_name_ar,
+        description: r.description || draft.description,
+        description_ar: r.description_ar || draft.description_ar,
+      });
+    } catch (err) {
+      setAiError(err instanceof ApiError && err.status === 503
+        ? "AI suggestions are not set up on this server. You can type the Arabic text yourself."
+        : err instanceof Error ? err.message : "Could not get a suggestion.");
+    }
+    setAiBusy(false);
   }
 
   async function remove(o: Offer) {
@@ -183,7 +216,7 @@ export default function OffersPage() {
     const has = draft.branch_ids.includes(id);
     setDraft({ ...draft, branch_ids: has ? draft.branch_ids.filter((b) => b !== id) : [...draft.branch_ids, id] });
   };
-  const set = (k: keyof Draft) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) =>
+  const set = (k: keyof Draft) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) =>
     draft && setDraft({ ...draft, [k]: e.target.value });
 
   const totalPages = data ? Math.max(1, Math.ceil(data.total / data.page_size)) : 1;
@@ -239,6 +272,29 @@ export default function OffersPage() {
               {fields.valid_to && <span className="error" role="alert">{fields.valid_to}</span>}
             </label>
           </div>
+
+          <fieldset>
+            <legend>Arabic name and descriptions (shown on the public site)</legend>
+            <div className="row">
+              <button type="button" onClick={suggest} disabled={aiBusy || !draft.item_name.trim()}>
+                {aiBusy ? "Asking Claude…" : "Suggest with Claude"}
+              </button>
+              <span className="muted">Fills the three fields below. Check and edit them before saving.</span>
+            </div>
+            {aiError && <p className="error" role="alert">{aiError}</p>}
+            <label>Item name in Arabic (optional)
+              <input dir="rtl" lang="ar" value={draft.item_name_ar} onChange={set("item_name_ar")} maxLength={200} />
+              {fields.item_name_ar && <span className="error" role="alert">{fields.item_name_ar}</span>}
+            </label>
+            <label>Description in English (optional)
+              <textarea rows={2} value={draft.description} onChange={set("description")} maxLength={1000} />
+              {fields.description && <span className="error" role="alert">{fields.description}</span>}
+            </label>
+            <label>Description in Arabic (optional)
+              <textarea dir="rtl" lang="ar" rows={2} value={draft.description_ar} onChange={set("description_ar")} maxLength={1000} />
+              {fields.description_ar && <span className="error" role="alert">{fields.description_ar}</span>}
+            </label>
+          </fieldset>
 
           <fieldset>
             <legend>Available at</legend>

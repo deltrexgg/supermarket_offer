@@ -28,7 +28,7 @@
 | `public` | Listing, search, filters, sorting, Redis cache | 4 |
 | `admin` | Dashboard stats, supermarket approval, areas, categories, offer removal; `seed.EnsureAdmin` creates the env admin login | 5 |
 | `ratelimit` | Per-IP fixed-window limits counted in Redis | 6 |
-| `ai` | Claude API for descriptions and Arabic names (nice-to-have) | 7 |
+| `ai` | Claude (Anthropic Messages API over HTTP) suggests an Arabic item name and English and Arabic descriptions; suggestions only, nothing is saved | 7 |
 
 ## Key flows
 
@@ -70,7 +70,7 @@ The API holds the service-role key and the S3 keys. The portal gets only the pro
 
 **`web-admin`** (client-rendered, admin role only): `/login`, `/dashboard`, `/supermarkets`, `/lists` (areas and categories), `/offers`.
 
-**`web-public`** (server-rendered): `/` (listing, search, filters, paging), `/offers/[id]` (detail with branches). English only for now; Arabic with right-to-left layout is planned for phase 7.
+**`web-public`** (server-rendered): English at `/` and `/offers/[id]`, Arabic with right-to-left layout at `/ar` and `/ar/offers/[id]`. Each language is its own root layout (route groups `(en)` and `ar`) and shares the components, which take a `lang` prop and read their text from `lib/i18n.ts`. A header link switches to the same page in the other language and keeps the filters. Pages carry `hreflang` links, a canonical address and per-offer titles. `robots.txt` is static; `sitemap.xml` is built per request from the live API (not at image build time, when the API is not running) and cached ten minutes. `web-portal` and `web-admin` serve a `robots.txt` that disallows everything and a `noindex` tag.
 
 ## Delivery phases
 
