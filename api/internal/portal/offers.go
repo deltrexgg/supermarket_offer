@@ -194,7 +194,7 @@ func readImageHeader(c *gin.Context, fh *multipart.FileHeader) (*storage.Image, 
 	case errors.Is(err, storage.ErrTooLarge):
 		apierr.PayloadTooLarge(c, "the photo must be 5 MB or smaller")
 	case errors.Is(err, storage.ErrUnsupported):
-		apierr.UnsupportedMedia(c, "the photo must be a JPEG, PNG or WebP image")
+		apierr.UnsupportedMedia(c, "the photo must be a JPEG, PNG, WebP, GIF or AVIF image")
 	default:
 		apierr.BadRequest(c, "could not read the uploaded photo")
 	}

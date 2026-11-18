@@ -76,7 +76,7 @@ An offer card contains: photo, item name, brand, unit, supermarket and logo, bra
 | GET | `/portal/offers/{id}/poster/print` | Print-friendly A4 HTML view. Query: `template`, `lang`. It opens the print dialog; the portal fetches it with the login token and opens it in a new tab. |
 | POST | `/portal/ai/offer-text` | Nice-to-have. Body: item details. Returns `description` and `item_name_ar` from Claude. |
 
-Upload rules: JPEG, PNG or WebP, checked by file signature (not just extension), max 5 MB, stored under a random name in the public Supabase Storage bucket `offer-media` (S3 API). Responses return a full file URL built from `PUBLIC_FILE_BASE_URL` and the stored key.
+Upload rules: JPEG, PNG, WebP, GIF or AVIF, checked by file signature (not just extension), max 5 MB, stored under a random name in the public Supabase Storage bucket `offer-media` (S3 API). Responses return a full file URL built from `PUBLIC_FILE_BASE_URL` and the stored key.
 
 ## Admin (role `admin`)
 

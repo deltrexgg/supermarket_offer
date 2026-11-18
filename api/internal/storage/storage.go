@@ -44,6 +44,20 @@ var allowed = map[string]string{
 	"image/jpeg": ".jpg",
 	"image/png":  ".png",
 	"image/webp": ".webp",
+	"image/gif":  ".gif",
+	"image/avif": ".avif",
+}
+
+// sniffImage returns the content type from the file signature. Go's http.DetectContentType
+// does not know AVIF, so that one is read from the ISO box header: bytes 4-8 are "ftyp"
+// and the major brand (bytes 8-12) is "avif" or "avis".
+func sniffImage(data []byte) string {
+	if len(data) >= 12 && string(data[4:8]) == "ftyp" {
+		if b := string(data[8:12]); b == "avif" || b == "avis" {
+			return "image/avif"
+		}
+	}
+	return http.DetectContentType(data)
 }
 
 // ReadImage reads an uploaded file and checks its real type from the file
@@ -64,7 +78,7 @@ func ReadImage(fh *multipart.FileHeader) (*Image, error) {
 	if len(data) > MaxImageBytes {
 		return nil, ErrTooLarge
 	}
-	ct := http.DetectContentType(data)
+	ct := sniffImage(data)
 	ext, ok := allowed[ct]
 	if !ok {
 		return nil, ErrUnsupported

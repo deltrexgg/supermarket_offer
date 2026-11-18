@@ -251,8 +251,8 @@ export default function OffersPage() {
             {fields.branch_ids && <span className="error">{fields.branch_ids}</span>}
           </fieldset>
 
-          <label>Photo (JPEG, PNG or WebP, max 5 MB)
-            <input type="file" accept="image/jpeg,image/png,image/webp" onChange={(e) => setPhoto(e.target.files?.[0] ?? null)} />
+          <label>Photo (JPEG, PNG, WebP, GIF or AVIF, max 5 MB)
+            <input type="file" accept="image/jpeg,image/png,image/webp,image/gif,image/avif" onChange={(e) => setPhoto(e.target.files?.[0] ?? null)} />
           </label>
           {/* eslint-disable-next-line @next/next/no-img-element */}
           {preview && <img className="thumb big" src={preview} alt="Offer photo preview" />}
