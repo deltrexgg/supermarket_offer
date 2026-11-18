@@ -17,7 +17,7 @@ export default function LangSwitch({ lang }: { lang: Lang }) {
   const t = strings(lang);
 
   return (
-    <Link href={target + search} className="langswitch" hrefLang={other} lang={other} aria-label={t.langSwitchLabel}>
+    <Link href={target + search} hrefLang={other} lang={other} aria-label={t.langSwitchLabel}>
       {t.langSwitch}
     </Link>
   );

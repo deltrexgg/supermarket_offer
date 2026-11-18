@@ -57,6 +57,11 @@ const en = {
   nextSlide: "Next offer",
   catTitle: "Shop by category",
   allOffers: "All offers",
+  allStores: "All stores",
+  storesLabel: "Supermarkets",
+  city: "Dubai",
+  topPicks: "Top picks",
+  offWord: "off",
   offersTitle: "Today's offers",
   filters: "Filters",
   apply: "Apply filters",
@@ -115,6 +120,11 @@ const ar: typeof en = {
   nextSlide: "العرض التالي",
   catTitle: "تسوق حسب الفئة",
   allOffers: "كل العروض",
+  allStores: "كل المتاجر",
+  storesLabel: "السوبرماركت",
+  city: "دبي",
+  topPicks: "الأفضل",
+  offWord: "خصم",
   offersTitle: "عروض اليوم",
   filters: "تصفية",
   apply: "تطبيق التصفية",
@@ -180,7 +190,7 @@ export function urgency(days: number): "bad" | "warn" | "ok" {
   return days <= 2 ? "bad" : days <= 5 ? "warn" : "ok";
 }
 
-export const offLabel = (lang: Lang, pct: number) => (lang === "en" ? `${pct}% OFF` : `خصم ${pct}%`);
+export const offLabel = (lang: Lang, pct: number) => (lang === "en" ? `${pct}%` : `٪${pct}`);
 
 export const saveLabel = (lang: Lang, regular: number, offer: number) =>
   lang === "en" ? `Save ${priceLabel(lang, regular - offer)}` : `وفّر ${priceLabel(lang, regular - offer)}`;

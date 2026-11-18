@@ -18,6 +18,7 @@ export type Detail = Card & {
 };
 export type OfferList = { items: Card[]; total: number; page: number; page_size: number };
 export type Option = { id: number; name: string };
+export type Shop = Option & { slug: string; logo_url: string | null };
 
 export class NotFoundError extends Error {}
 
@@ -32,4 +33,4 @@ export const getOffers = (qs: URLSearchParams) => get<OfferList>(`/offers?${qs}`
 export const getOffer = (id: string) => get<Detail>(`/offers/${encodeURIComponent(id)}`);
 export const getAreas = () => get<{ items: Option[] }>("/areas").then((r) => r.items);
 export const getCategories = () => get<{ items: Option[] }>("/categories").then((r) => r.items);
-export const getSupermarkets = () => get<{ items: Option[] }>("/supermarkets").then((r) => r.items);
+export const getSupermarkets = () => get<{ items: Shop[] }>("/supermarkets").then((r) => r.items);
