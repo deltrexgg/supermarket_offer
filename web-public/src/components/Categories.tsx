@@ -1,9 +1,9 @@
 import Link from "next/link";
-import Icon, { CAT_TINTS, categoryIcon } from "@/components/Icon";
+import Icon, { categoryIcon } from "@/components/Icon";
 import type { Option } from "@/lib/api";
 import { home, strings, type Lang } from "@/lib/i18n";
 
-// Tappable category tiles; each one applies the category filter.
+// Category tiles; "All offers" first. The current one is filled green.
 export default function Categories({ lang, categories, current }: { lang: Lang; categories: Option[]; current?: string }) {
   const t = strings(lang);
   if (categories.length === 0) return null;
@@ -11,10 +11,14 @@ export default function Categories({ lang, categories, current }: { lang: Lang; 
     <section className="sec" aria-labelledby="cats-h">
       <h2 id="cats-h">{t.catTitle}</h2>
       <div className="cats">
-        {categories.map((c, idx) => (
+        <Link href={`${home(lang)}#offers`} className="cat" aria-current={!current}>
+          <Icon name="grid" size={28} />
+          <span>{t.allOffers}</span>
+        </Link>
+        {categories.map((c) => (
           <Link key={c.id} href={`${home(lang)}?category=${c.id}#offers`} className="cat" aria-current={current === String(c.id)}>
-            <span className="caticon" style={{ background: CAT_TINTS[idx % CAT_TINTS.length] }}><Icon name={categoryIcon(c.name)} size={24} /></span>
-            <span className="catn" dir="auto">{c.name}</span>
+            <Icon name={categoryIcon(c.name)} size={28} />
+            <span dir="auto">{c.name}</span>
           </Link>
         ))}
       </div>

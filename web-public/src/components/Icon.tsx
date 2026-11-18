@@ -18,6 +18,7 @@ const PATHS = {
   cup: "M6 4h12l-1.5 16h-9zM6.5 9h11",
   home: "M4 11l8-7 8 7v9a1 1 0 0 1-1 1h-4v-6H9v6H5a1 1 0 0 1-1-1z",
   bread: "M5 11a4 4 0 0 1 3-6h8a4 4 0 0 1 3 6v8a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1z",
+  grid: "M4 4h7v7H4zM13 4h7v7h-7zM4 13h7v7H4zM13 13h7v7h-7z",
   basket: "M4 9h16l-1.5 10a2 2 0 0 1-2 1.7H7.5a2 2 0 0 1-2-1.7zM8 9l3-5M16 9l-3-5",
 } as const;
 
@@ -44,4 +45,3 @@ export function categoryIcon(name: string): IconName {
   return "basket";
 }
 
-export const CAT_TINTS = ["#e4f3ea", "#e3f0ff", "#ffe9e2", "#fff3d0", "#eef5cf", "#f1e8ff", "#ffe6ef"];

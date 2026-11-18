@@ -43,7 +43,7 @@ async function Detail({ lang, params }: { lang: Lang; params: Promise<{ id: stri
           ) : (
             <span className="tile-letter" aria-hidden="true">{name.charAt(0).toUpperCase()}</span>
           )}
-          {o.discount_pct > 0 && <span className="off" dir="ltr">-{o.discount_pct}%</span>}
+          {o.discount_pct > 0 && <span className="off"><bdi dir="ltr">-{o.discount_pct}%</bdi></span>}
         </div>
         <div className="panel">
           <div className="tags">

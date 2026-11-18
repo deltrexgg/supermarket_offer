@@ -55,6 +55,7 @@ export default function TopOffers({ offers, lang }: { offers: Card[]; lang: Lang
       onPointerUp={(e) => onUp(e.clientX)}
       onPointerCancel={() => { startX.current = null; }}
     >
+      <div className="slider-pat" aria-hidden="true" />
       <div className="track" style={{ transform: `translateX(${(rtl ? 1 : -1) * i * 100}%)` }}>
         {offers.map((o, idx) => {
           const name = pick(lang, o.item_name, o.item_name_ar);
