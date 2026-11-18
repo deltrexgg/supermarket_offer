@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { api, type Page, type Shop, type ShopStatus } from "@/lib/api";
 
 const TABS: [string, string][] = [["", "All"], ["pending", "Pending"], ["approved", "Approved"], ["blocked", "Blocked"]];
@@ -12,6 +12,8 @@ export default function SupermarketsPage() {
   const [data, setData] = useState<Page<Shop> | null>(null);
   const [error, setError] = useState("");
   const [busyId, setBusyId] = useState<number | null>(null);
+  const logoInput = useRef<HTMLInputElement | null>(null);
+  const [logoFor, setLogoFor] = useState<Shop | null>(null);
 
   // The dashboard links here with ?status=...; read it once on the client.
   useEffect(() => {
@@ -49,6 +51,44 @@ export default function SupermarketsPage() {
     }
   }
 
+  // The hidden file input is shared: remember which supermarket it is for.
+  function chooseLogo(s: Shop) {
+    setLogoFor(s);
+    logoInput.current?.click();
+  }
+
+  async function uploadLogo(file: File) {
+    const s = logoFor;
+    if (!s) return;
+    setBusyId(s.id);
+    try {
+      const fd = new FormData();
+      fd.append("logo", file);
+      await api(`/admin/supermarkets/${s.id}/logo`, { method: "POST", body: fd });
+      await load();
+      setError("");
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Could not upload the logo");
+    } finally {
+      setBusyId(null);
+      setLogoFor(null);
+    }
+  }
+
+  async function removeLogo(s: Shop) {
+    if (!window.confirm(`Remove the logo for ${s.name}?`)) return;
+    setBusyId(s.id);
+    try {
+      await api(`/admin/supermarkets/${s.id}/logo`, { method: "DELETE" });
+      await load();
+      setError("");
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Could not remove the logo");
+    } finally {
+      setBusyId(null);
+    }
+  }
+
   const pages = data ? Math.max(1, Math.ceil(data.total / data.page_size)) : 1;
 
   return (
@@ -62,17 +102,34 @@ export default function SupermarketsPage() {
         </div>
         <input className="search" placeholder="Search by name" value={q} onChange={(e) => { setQ(e.target.value); setPage(1); }} aria-label="Search supermarkets" />
       </div>
+      <input
+        ref={logoInput}
+        type="file"
+        accept="image/jpeg,image/png,image/webp,image/gif,image/avif"
+        hidden
+        onChange={(e) => {
+          const f = e.target.files?.[0];
+          e.target.value = "";
+          if (f) void uploadLogo(f);
+        }}
+      />
       {error && <p className="error" role="alert">{error}</p>}
       {!data ? <p className="muted">Loading…</p> : data.items.length === 0 ? (
         <p className="muted">No supermarkets match.</p>
       ) : (
         <table>
           <thead>
-            <tr><th>Name</th><th>Login</th><th>Registered</th><th>Branches</th><th>Offers</th><th>Status</th><th /></tr>
+            <tr><th>Logo</th><th>Name</th><th>Login</th><th>Registered</th><th>Branches</th><th>Offers</th><th>Status</th><th /></tr>
           </thead>
           <tbody>
             {data.items.map((s) => (
               <tr key={s.id}>
+                <td>
+                  {s.logo_url
+                    // eslint-disable-next-line @next/next/no-img-element
+                    ? <img className="shop-logo" src={s.logo_url} alt={`${s.name} logo`} />
+                    : <span className="shop-logo letter" aria-hidden="true">{s.name.charAt(0).toUpperCase()}</span>}
+                </td>
                 <td><strong>{s.name}</strong>{s.phone && <div className="muted">{s.phone}</div>}</td>
                 <td>{s.email}</td>
                 <td>{s.created_at}</td>
@@ -84,6 +141,12 @@ export default function SupermarketsPage() {
                     <button className="primary" disabled={busyId === s.id} onClick={() => setShopStatus(s, "approved")}>
                       {s.status === "blocked" ? "Unblock" : "Approve"}
                     </button>
+                  )}
+                  <button disabled={busyId === s.id} onClick={() => chooseLogo(s)}>
+                    {s.logo_url ? "Replace logo" : "Add logo"}
+                  </button>
+                  {s.logo_url && (
+                    <button disabled={busyId === s.id} onClick={() => removeLogo(s)}>Remove logo</button>
                   )}
                   {s.status !== "blocked" && (
                     <button className="danger" disabled={busyId === s.id} onClick={() => setShopStatus(s, "blocked")}>

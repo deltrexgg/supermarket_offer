@@ -18,7 +18,15 @@ export default function OfferCard({ o, lang }: { o: Card; lang: Lang }) {
       </div>
       <div className="body">
         <h3 dir="auto">{name}</h3>
-        <span className="sub" dir="auto">{[o.supermarket_name, o.brand, o.unit].filter(Boolean).join(" · ")}</span>
+        <span className="sub" dir="auto">
+          {o.logo_url ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img className="shoplogo" src={o.logo_url} alt="" loading="lazy" />
+          ) : (
+            <span className="shoplogo letter" aria-hidden="true">{o.supermarket_name.charAt(0).toUpperCase()}</span>
+          )}
+          {[o.supermarket_name, o.brand, o.unit].filter(Boolean).join(" · ")}
+        </span>
         <span className={`chip ${urgency(o.days_left)}`}>{daysLeftLabel(lang, o.days_left)}</span>
         <div className="prow">
           <div className="prices">

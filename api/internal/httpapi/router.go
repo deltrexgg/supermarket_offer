@@ -82,7 +82,8 @@ func NewRouter(d Deps) *gin.Engine {
 	v1 := r.Group("/api/v1")
 
 	// Public routes.
-	v1.POST("/auth/register", limit("register", 10, time.Hour), bodyLimit(64<<10), d.Portal.Register)
+	// The register route accepts JSON, or multipart when a logo is attached.
+	v1.POST("/auth/register", limit("register", 10, time.Hour), bodyLimit(6<<20+64<<10), d.Portal.Register)
 	pub := v1.Group("", limit("public", perMinute, time.Minute))
 	pub.GET("/areas", d.Portal.Areas)
 	pub.GET("/categories", d.Portal.Categories)
@@ -117,6 +118,8 @@ func NewRouter(d Deps) *gin.Engine {
 	ad.GET("/stats", d.Admin.Stats)
 	ad.GET("/supermarkets", d.Admin.ListSupermarkets)
 	ad.PATCH("/supermarkets/:id/status", bodyLimit(4<<10), d.Admin.SetSupermarketStatus)
+	ad.POST("/supermarkets/:id/logo", bodyLimit(6<<20+64<<10), d.Admin.SetSupermarketLogo)
+	ad.DELETE("/supermarkets/:id/logo", d.Admin.RemoveSupermarketLogo)
 	ad.GET("/areas", d.Admin.ListAreas)
 	ad.POST("/areas", bodyLimit(4<<10), d.Admin.CreateArea)
 	ad.PUT("/areas/:id", bodyLimit(4<<10), d.Admin.RenameArea)

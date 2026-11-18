@@ -16,7 +16,9 @@ import (
 	"gorm.io/gorm"
 
 	"github.com/deltrexgg/supermarket_offer/api/internal/apierr"
+	"github.com/deltrexgg/supermarket_offer/api/internal/logo"
 	"github.com/deltrexgg/supermarket_offer/api/internal/models"
+	"github.com/deltrexgg/supermarket_offer/api/internal/storage"
 	"github.com/deltrexgg/supermarket_offer/api/internal/supabase"
 )
 
@@ -46,13 +48,35 @@ func randomSuffix() string {
 	return hex.EncodeToString(b)
 }
 
+// bindRegister reads the signup either as JSON or, when a logo is attached, as
+// multipart form data. Both shapes carry the same fields, so an existing client
+// that posts JSON keeps working.
+func (h *Handler) bindRegister(c *gin.Context) (registerRequest, *storage.Image, bool) {
+	var req registerRequest
+	if strings.HasPrefix(c.ContentType(), "multipart/form-data") {
+		req.Name = c.PostForm("name")
+		req.Email = c.PostForm("email")
+		req.Password = c.PostForm("password")
+		req.Phone = c.PostForm("phone")
+		img, ok := logo.Read(c)
+		if !ok {
+			return req, nil, false
+		}
+		return req, img, true
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		apierr.BadRequest(c, "body must be JSON")
+		return req, nil, false
+	}
+	return req, nil, true
+}
+
 // Register creates the Supabase login, then the supermarket (pending) and its
 // users row in one transaction. If the transaction fails, the login is removed
 // again so the email can be used for another attempt.
 func (h *Handler) Register(c *gin.Context) {
-	var req registerRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		apierr.BadRequest(c, "body must be JSON")
+	req, logoImg, ok := h.bindRegister(c)
+	if !ok {
 		return
 	}
 	req.Name = strings.TrimSpace(req.Name)
@@ -135,6 +159,22 @@ func (h *Handler) Register(c *gin.Context) {
 		log.Printf("register: transaction: %v", txErr)
 		apierr.Internal(c)
 		return
+	}
+
+	// The storage key needs the new id, so the logo is stored after the row exists.
+	// A failure here leaves the account usable; the logo can be added from the
+	// admin area later.
+	if logoImg != nil {
+		key := logo.Key(sm.ID, logoImg.Ext)
+		if err := h.Store.Put(ctx, key, logoImg.ContentType, logoImg.Data); err != nil {
+			log.Printf("register: store logo for supermarket %d: %v", sm.ID, err)
+		} else if err := h.DB.WithContext(ctx).Model(&models.Supermarket{}).
+			Where("id = ?", sm.ID).Update("logo_path", key).Error; err != nil {
+			logo.RemoveFile(h.Store, key)
+			log.Printf("register: save logo path for supermarket %d: %v", sm.ID, err)
+		} else {
+			sm.LogoPath = &key
+		}
 	}
 
 	c.JSON(http.StatusCreated, gin.H{

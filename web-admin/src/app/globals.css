@@ -49,3 +49,7 @@ a.tile:hover { border-color: var(--brand); }
 .panel table { border: none; }
 :focus-visible { outline: 3px solid var(--brand); outline-offset: 2px; }
 button:focus-visible, a:focus-visible { border-radius: 8px; }
+
+/* Supermarket logo in the list: the picture, or the first letter when there is none. */
+.shop-logo { width: 40px; height: 40px; object-fit: contain; background: #fff; border: 1px solid var(--line); border-radius: 8px; padding: 3px; display: block; }
+.shop-logo.letter { display: grid; place-items: center; font-weight: 800; color: var(--brand); background: var(--tile, #eef2ee); }

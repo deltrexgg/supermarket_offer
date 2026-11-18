@@ -111,6 +111,8 @@ type shopRow struct {
 	ID          uint    `json:"id"`
 	Name        string  `json:"name"`
 	Slug        string  `json:"slug"`
+	LogoPath    *string `json:"-"`
+	LogoURL     *string `json:"logo_url"`
 	Phone       *string `json:"phone"`
 	Status      string  `json:"status"`
 	Email       string  `json:"email"`
@@ -147,7 +149,7 @@ func (h *Handler) ListSupermarkets(c *gin.Context) {
 		return
 	}
 	items := []shopRow{}
-	err := q.Select(`s.id, s.name, s.slug, s.phone, s.status::text AS status,
+	err := q.Select(`s.id, s.name, s.slug, s.logo_path, s.phone, s.status::text AS status,
 			COALESCE((SELECT u.email::text FROM users u WHERE u.supermarket_id = s.id), '') AS email,
 			to_char(s.created_at AT TIME ZONE 'Asia/Dubai', 'YYYY-MM-DD') AS created_at,
 			(SELECT count(*) FROM branches b WHERE b.supermarket_id = s.id) AS branch_count,
@@ -158,6 +160,12 @@ func (h *Handler) ListSupermarkets(c *gin.Context) {
 		log.Printf("admin list supermarkets: %v", err)
 		apierr.Internal(c)
 		return
+	}
+	for i := range items {
+		if p := items[i].LogoPath; p != nil && *p != "" {
+			u := h.Store.URL(*p)
+			items[i].LogoURL = &u
+		}
 	}
 	c.JSON(http.StatusOK, pageResult[shopRow]{Items: items, Total: total, Page: page, PageSize: size})
 }

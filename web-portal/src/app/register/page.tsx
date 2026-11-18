@@ -2,16 +2,19 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { api, ApiError } from "@/lib/api";
 import { supabase } from "@/lib/supabase";
 
 export default function RegisterPage() {
   const router = useRouter();
   const [form, setForm] = useState({ name: "", email: "", password: "", phone: "" });
+  const [logo, setLogo] = useState<File | null>(null);
   const [fields, setFields] = useState<Record<string, string>>({});
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
+
+  const logoPreview = useMemo(() => (logo ? URL.createObjectURL(logo) : null), [logo]);
 
   const set = (k: keyof typeof form) => (e: React.ChangeEvent<HTMLInputElement>) =>
     setForm({ ...form, [k]: e.target.value });
@@ -22,7 +25,15 @@ export default function RegisterPage() {
     setError("");
     setFields({});
     try {
-      await api("/auth/register", { method: "POST", body: form, auth: false });
+      // With a logo the signup goes up as multipart; without one it stays JSON.
+      let body: unknown = form;
+      if (logo) {
+        const fd = new FormData();
+        for (const [k, v] of Object.entries(form)) fd.append(k, v);
+        fd.append("logo", logo);
+        body = fd;
+      }
+      await api("/auth/register", { method: "POST", body, auth: false });
       const { error } = await supabase().auth.signInWithPassword({ email: form.email.trim(), password: form.password });
       if (error) throw new Error("Account created. Please sign in.");
       router.replace("/offers");
@@ -58,6 +69,15 @@ export default function RegisterPage() {
           <input value={form.phone} onChange={set("phone")} autoComplete="tel" />
           {fields.phone && <span className="error" role="alert">{fields.phone}</span>}
         </label>
+        <label>Logo (optional)
+          <input type="file" accept="image/jpeg,image/png,image/webp,image/gif,image/avif" onChange={(e) => setLogo(e.target.files?.[0] ?? null)} />
+          <span className="muted">Shoppers see this next to your name. JPEG, PNG, WebP, GIF or AVIF, up to 5 MB. A square image works best.</span>
+          {fields.logo && <span className="error" role="alert">{fields.logo}</span>}
+        </label>
+        {logoPreview && (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img className="logo-preview" src={logoPreview} alt="Logo preview" />
+        )}
         {error && <p className="error" role="alert">{error}</p>}
         <button className="primary" disabled={busy}>{busy ? "Creating…" : "Create account"}</button>
       </form>

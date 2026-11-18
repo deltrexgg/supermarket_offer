@@ -39,7 +39,7 @@ Per client IP, counted in Redis: public routes `RATE_LIMIT_PUBLIC` per minute (d
 
 | Method | Path | Role | Notes |
 |---|---|---|---|
-| POST | `/auth/register` | public | Body: `name`, `email`, `password`, `phone`. Creates the Supabase user (email pre-confirmed), then the supermarket (`pending`) and its `users` row in one transaction. If that transaction fails, the Supabase user is deleted again. `201`. `409` if the email exists. |
+| POST | `/auth/register` | public | Body: `name`, `email`, `password`, `phone`, as JSON or as multipart with an optional `logo` file. Creates the Supabase user (email pre-confirmed), then the supermarket (`pending`) and its `users` row in one transaction. If that transaction fails, the Supabase user is deleted again. The logo is stored after the row exists, so a storage failure leaves the account usable and the logo can be added later from the admin area. `201`. `409` if the email exists. |
 | GET | `/auth/me` | any signed-in | Current user: `id`, `email`, `role`, `supermarket_id`. `403` if the login has no account. |
 
 There is no `/auth/login` endpoint: signing in is done by the web app directly with Supabase Auth.
@@ -92,6 +92,8 @@ The admin login comes from `ADMIN_EMAIL` and `ADMIN_PASSWORD` in `.env`; the API
 | GET | `/admin/stats` | Dashboard counts: supermarkets by status, branches, offers active, upcoming, expired and ending within 2 days. |
 | GET | `/admin/supermarkets` | `status` (`pending`, `approved`, `blocked`), `q`, paging. Includes login email, branch and offer counts. Pending first. |
 | PATCH | `/admin/supermarkets/{id}/status` | Body: `status` (`approved`, `blocked`, `pending`). Refreshes the public cache. |
+| POST | `/admin/supermarkets/{id}/logo` | Multipart with a `logo` file: JPEG, PNG, WebP, GIF or AVIF, 5 MB at most, type read from the file's own bytes. Stored as `supermarket-logo/{id}/<uuid>.<ext>`. Replaces any logo this app uploaded before and deletes that file; a file placed in the bucket by hand is left alone. Refreshes the public cache. |
+| DELETE | `/admin/supermarkets/{id}/logo` | Clears `logo_path`, and deletes the file only when this app uploaded it. Refreshes the public cache. |
 | GET / POST | `/admin/areas`, `/admin/categories` | List includes `in_use`. Names are 2 to 80 characters, unique ignoring case (`409`). |
 | PUT / DELETE | `/admin/areas/{id}`, `/admin/categories/{id}` | Delete returns `409` while the area has branches or the category has offers. |
 | GET | `/admin/offers` | Every supermarket's offers. `status`, `supermarket`, `q`, paging. |

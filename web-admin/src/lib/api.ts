@@ -55,7 +55,7 @@ export type Stats = {
 };
 export type ShopStatus = "pending" | "approved" | "blocked";
 export type Shop = {
-  id: number; name: string; slug: string; phone: string | null; status: ShopStatus; email: string;
+  id: number; name: string; slug: string; logo_url: string | null; phone: string | null; status: ShopStatus; email: string;
   created_at: string; branch_count: number; offer_count: number;
 };
 export type Lookup = { id: number; name: string; in_use: number };

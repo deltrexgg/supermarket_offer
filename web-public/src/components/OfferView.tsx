@@ -47,7 +47,15 @@ async function Detail({ lang, params }: { lang: Lang; params: Promise<{ id: stri
         </div>
         <div className="panel">
           <div className="tags">
-            <span className="tag" dir="auto">{o.supermarket_name}</span>
+            <span className="tag" dir="auto">
+              {o.logo_url ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img className="shoplogo" src={o.logo_url} alt="" />
+              ) : (
+                <span className="shoplogo letter" aria-hidden="true">{o.supermarket_name.charAt(0).toUpperCase()}</span>
+              )}
+              {o.supermarket_name}
+            </span>
             <span className="tag n" dir="auto">{o.category_name}</span>
           </div>
           <h1 dir="auto">{name}</h1>

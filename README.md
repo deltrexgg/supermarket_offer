@@ -68,7 +68,7 @@ Options: `width`, `height`, `scale` (max 3), `format` (`png` or `jpeg`), `qualit
 | `DATABASE_URL` | yes | Supabase session pooler connection string. Percent-encode special characters in the password. |
 | `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY` | yes | Login. The anon key goes to the portal and admin builds; the service-role key stays in the API. |
 | `S3_ENDPOINT`, `S3_REGION`, `S3_BUCKET`, `S3_ACCESS_KEY_ID`, `S3_SECRET_ACCESS_KEY` | yes | Supabase Storage through its S3 API. |
-| `PUBLIC_FILE_BASE_URL` | yes | Where browsers load photos and posters: `https://REF.supabase.co/storage/v1/object/public/offer-media`. The bucket must be public. |
+| `PUBLIC_FILE_BASE_URL` | yes | Where browsers load photos, posters and logos: `https://REF.supabase.co/storage/v1/object/public/offer-media`. The bucket must be public. |
 | `ADMIN_EMAIL`, `ADMIN_PASSWORD` | no | The platform owner login, created on startup. Set both or neither. Password 8 to 72 characters. |
 | `SEED` | no | `true` fills an empty database with demo data and creates the demo supermarket logins. |
 | `CORS_ORIGINS` | yes | Web app addresses allowed to call the API: ports 3000, 3001 and 3002 locally. |
@@ -117,3 +117,47 @@ docker run --rm -v "${PWD}:/p" -w /p -e API_URL=http://host.docker.internal:8080
 - `prepared statement "stmtcache_..." already exists` on start: the Supabase pooler reused a connection that still held statements from an earlier run. The API now uses the simple query protocol (no prepared statements), so this should not happen. If you see it, you are running an older image: `docker compose up --build`.
 - `lookup ...@aws-0-...: no such host`: the database password in `DATABASE_URL` has special characters. Percent-encode them (`@` is `%40`) or use a password without any.
 - The admin or portal login page loops back to sign in and the browser console shows a CORS error: add that app's address (for example `http://localhost:3002`) to `CORS_ORIGINS` in `.env`, then `docker compose up -d api`.
+
+## Supermarket logos
+
+A supermarket's logo appears next to its name on the public site, so shoppers can
+tell the shops apart. Without one, the shop's first letter stands in.
+
+A logo can be added in three ways:
+
+- on the signup form in the portal, as an optional file;
+- from the admin area (Supermarkets, then **Add logo** or **Replace logo**);
+- by hand, by putting the file in the `offer-media` bucket and pointing the row at it.
+
+Logos live in the `supermarket-logo` folder of the same `offer-media` bucket as
+offer photos. They have to be in that bucket, because `PUBLIC_FILE_BASE_URL`
+points there and `supermarkets.logo_path` is appended to it.
+
+To add one by hand, upload the file as `supermarket-logo/<slug>.png`, then point
+the row at it. Find the slug first:
+
+```sql
+SELECT id, name, slug, logo_path FROM supermarkets ORDER BY name;
+
+UPDATE supermarkets
+SET logo_path = 'supermarket-logo/al-noor-fresh-mart.png'
+WHERE slug = 'al-noor-fresh-mart';
+```
+
+No schema change is needed: `logo_path` has been in the first migration all along.
+
+When you replace a logo later, upload it under a **new** name (for example
+`al-noor-fresh-mart-2.png`) and update `logo_path` again, then delete the old
+file. Reusing the same name leaves the old picture in people's browser caches.
+
+After any change made directly in SQL, clear the cache, or the public site keeps
+serving the old data until midnight in Dubai:
+
+```bash
+docker compose exec redis redis-cli FLUSHALL
+```
+
+Uploads through the portal or the admin area need none of this: they are stored
+as `supermarket-logo/<supermarket id>/<random>.<ext>` and refresh the cache
+themselves. Replacing or removing such a logo deletes the old file; a file you
+placed in the bucket by hand is never deleted by the app.

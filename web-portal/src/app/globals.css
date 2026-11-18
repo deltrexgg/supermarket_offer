@@ -42,3 +42,6 @@ tr:last-child td { border-bottom: none; }
 .poster-preview { width: 100%; max-width: 360px; border: 1px solid var(--line); border-radius: 6px; display: block; }
 :focus-visible { outline: 3px solid var(--brand); outline-offset: 2px; }
 button:focus-visible, a:focus-visible { border-radius: 8px; }
+
+/* Logo chosen on the signup form, and the one shown once it is saved. */
+.logo-preview { width: 96px; height: 96px; object-fit: contain; background: #fff; border: 1px solid var(--line); border-radius: 12px; padding: 6px; }
