@@ -66,3 +66,9 @@ Options: `width`, `height`, `scale` (max 3), `format` (`png` or `jpeg`), `qualit
 - `api/go.sum` is generated on the first Docker build. Run `go mod tidy` in `api/` and commit it to pin versions.
 - The `/render` endpoint is unauthenticated for now. Put it behind auth before exposing it publicly.
 - Login code (Supabase token verification) and image uploads to the bucket are built in later phases. Their settings are already in `.env.example`.
+
+## Troubleshooting
+
+- `prepared statement "stmtcache_..." already exists` on start: the Supabase pooler reused a connection that still held statements from an earlier run. The API now uses the simple query protocol (no prepared statements), so this should not happen. If you see it, you are running an older image: `docker compose up --build`.
+- `lookup ...@aws-0-...: no such host`: the database password in `DATABASE_URL` has special characters. Percent-encode them (`@` is `%40`) or use a password without any.
+- The admin or portal login page loops back to sign in and the browser console shows a CORS error: add that app's address (for example `http://localhost:3002`) to `CORS_ORIGINS` in `.env`, then `docker compose up -d api`.
