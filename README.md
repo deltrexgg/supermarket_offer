@@ -30,6 +30,17 @@ docker compose up --build
 
 On start the API applies the SQL migrations in `api/migrations/` to your Supabase database (look for `migrate: applied 0001_init.sql` in the log).
 
+With `SEED=true` (the default in `.env.example`) the API also fills an empty database with Dubai demo data (3 supermarkets, 6 branches, 30 offers with dates relative to today) and creates these logins in your Supabase Auth. Password for all: `Offers@12345`.
+
+| Login | Role |
+|---|---|
+| `admin@offers.test` | admin |
+| `noor@offers.test` | Al Noor Fresh Mart |
+| `gulf@offers.test` | Gulf Basket |
+| `spice@offers.test` | Spice Garden Hypermarket |
+
+Set `SEED=false` afterwards. The seed never touches a database that already has supermarkets.
+
 - API health: http://localhost:8080/health
 - Portal: http://localhost:3000
 - Public site: http://localhost:3001

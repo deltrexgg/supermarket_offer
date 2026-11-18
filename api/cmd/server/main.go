@@ -12,12 +12,14 @@ import (
 
 	"github.com/gin-gonic/gin"
 
+	"github.com/deltrexgg/supermarket_offer/api/internal/auth"
 	"github.com/deltrexgg/supermarket_offer/api/internal/cache"
 	"github.com/deltrexgg/supermarket_offer/api/internal/config"
 	"github.com/deltrexgg/supermarket_offer/api/internal/db"
 	"github.com/deltrexgg/supermarket_offer/api/internal/httpapi"
 	"github.com/deltrexgg/supermarket_offer/api/internal/migrate"
 	"github.com/deltrexgg/supermarket_offer/api/internal/render"
+	"github.com/deltrexgg/supermarket_offer/api/internal/seed"
 	"github.com/deltrexgg/supermarket_offer/api/migrations"
 )
 
@@ -45,6 +47,20 @@ func main() {
 	}
 	cancelMig()
 
+	if cfg.Seed {
+		seedCtx, cancelSeed := context.WithTimeout(context.Background(), 2*time.Minute)
+		if err := seed.Run(seedCtx, gdb, cfg.SupabaseURL, cfg.SupabaseServiceRoleKey); err != nil {
+			cancelSeed()
+			log.Fatalf("seed: %v", err)
+		}
+		cancelSeed()
+	}
+
+	verifier, err := auth.NewVerifier(cfg.SupabaseURL, gdb)
+	if err != nil {
+		log.Fatalf("auth: %v", err)
+	}
+
 	rdb, err := cache.Connect(cfg.RedisAddr, cfg.RedisPassword)
 	if err != nil {
 		log.Fatalf("redis: %v", err)
@@ -59,7 +75,7 @@ func main() {
 	srv := &http.Server{
 		Addr: ":" + cfg.Port,
 		Handler: httpapi.NewRouter(httpapi.Deps{
-			DB: gdb, Redis: rdb, Renderer: rn, CORSOrigins: cfg.CORSOrigins,
+			DB: gdb, Redis: rdb, Renderer: rn, Auth: verifier, CORSOrigins: cfg.CORSOrigins,
 		}),
 		ReadHeaderTimeout: 10 * time.Second,
 	}

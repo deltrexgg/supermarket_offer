@@ -12,6 +12,7 @@ type Config struct {
 	RedisPassword string
 	ChromePath    string
 	CORSOrigins   string
+	Seed          bool
 
 	// Supabase Auth
 	SupabaseURL            string
@@ -41,6 +42,7 @@ func Load() Config {
 		RedisPassword: getenv("REDIS_PASSWORD", ""),
 		ChromePath:    getenv("CHROME_PATH", ""),
 		CORSOrigins:   getenv("CORS_ORIGINS", "http://localhost:3000,http://localhost:3001"),
+		Seed:          getenv("SEED", "false") == "true",
 
 		SupabaseURL:            getenv("SUPABASE_URL", ""),
 		SupabaseServiceRoleKey: getenv("SUPABASE_SERVICE_ROLE_KEY", ""),
@@ -55,10 +57,13 @@ func Load() Config {
 }
 
 // Validate stops the app at startup when something it cannot run without is missing.
-// Supabase Auth and S3 settings are checked later, by the features that use them.
+// S3 settings are checked later, by the features that use them.
 func (c Config) Validate() error {
 	if c.DatabaseURL == "" {
 		return errors.New("DATABASE_URL is not set: use your Supabase session pooler connection string")
+	}
+	if c.SupabaseURL == "" {
+		return errors.New("SUPABASE_URL is not set: the API needs it to verify logins")
 	}
 	return nil
 }

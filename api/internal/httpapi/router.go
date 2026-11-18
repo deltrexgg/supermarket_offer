@@ -11,6 +11,8 @@ import (
 	"github.com/redis/go-redis/v9"
 	"gorm.io/gorm"
 
+	"github.com/deltrexgg/supermarket_offer/api/internal/apierr"
+	"github.com/deltrexgg/supermarket_offer/api/internal/auth"
 	"github.com/deltrexgg/supermarket_offer/api/internal/render"
 )
 
@@ -18,6 +20,7 @@ type Deps struct {
 	DB          *gorm.DB
 	Redis       *redis.Client
 	Renderer    *render.Renderer
+	Auth        *auth.Verifier
 	CORSOrigins string
 }
 
@@ -50,8 +53,16 @@ func NewRouter(d Deps) *gin.Engine {
 		c.JSON(code, status)
 	})
 
+	r.NoRoute(func(c *gin.Context) { apierr.NotFound(c, "route not found") })
+
 	v1 := r.Group("/api/v1")
-	v1.POST("/render", renderHandler(d.Renderer))
+
+	// Signed-in routes. Phase 2+ adds the supermarket and admin groups here.
+	authed := v1.Group("", d.Auth.Authenticate())
+	authed.GET("/auth/me", func(c *gin.Context) { c.JSON(http.StatusOK, auth.CurrentUser(c)) })
+
+	// Rendering runs headless Chrome, so only signed-in users may call it.
+	authed.POST("/render", renderHandler(d.Renderer))
 
 	return r
 }
@@ -70,15 +81,15 @@ func renderHandler(rn *render.Renderer) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		var req renderRequest
 		if err := c.ShouldBindJSON(&req); err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			apierr.BadRequest(c, err.Error())
 			return
 		}
 		if req.Format != "" && req.Format != "png" && req.Format != "jpeg" {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "format must be png or jpeg"})
+			apierr.BadRequest(c, "format must be png or jpeg")
 			return
 		}
 		if req.Width > 4000 || req.Height > 8000 || req.Scale > 3 {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "dimensions too large"})
+			apierr.BadRequest(c, "dimensions too large")
 			return
 		}
 
@@ -87,7 +98,7 @@ func renderHandler(rn *render.Renderer) gin.HandlerFunc {
 			Format: req.Format, Quality: req.Quality,
 		})
 		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			apierr.Internal(c)
 			return
 		}
 
