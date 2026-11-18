@@ -34,7 +34,7 @@ const en = {
   previous: "Previous",
   next: "Next",
   pagesLabel: "Pages",
-  back: "← All offers",
+  back: "All offers",
   availableAt: "Available at",
   footer: "Prices in AED. Offers are valid on the dates shown, Dubai time.",
   notFoundTitle: "This offer isn't available",
@@ -48,6 +48,19 @@ const en = {
   langSwitch: "العربية",
   langSwitchLabel: "Switch to Arabic",
   was: "was",
+  topOffer: "Top offer",
+  viewOffer: "View offer",
+  carouselLabel: "Top offers",
+  pauseSlides: "Pause auto-slide",
+  playSlides: "Play auto-slide",
+  prevSlide: "Previous offer",
+  nextSlide: "Next offer",
+  catTitle: "Shop by category",
+  offersTitle: "Today's offers",
+  filters: "Filters",
+  apply: "Apply filters",
+  branchesTitle: "Available at",
+  call: "Call",
 };
 
 const ar: typeof en = {
@@ -78,7 +91,7 @@ const ar: typeof en = {
   previous: "السابق",
   next: "التالي",
   pagesLabel: "الصفحات",
-  back: "كل العروض ←",
+  back: "كل العروض",
   availableAt: "متوفر في",
   footer: "الأسعار بالدرهم الإماراتي. العروض سارية في التواريخ المعروضة بتوقيت دبي.",
   notFoundTitle: "هذا العرض غير متاح",
@@ -92,6 +105,19 @@ const ar: typeof en = {
   langSwitch: "English",
   langSwitchLabel: "التبديل إلى الإنجليزية",
   was: "كان",
+  topOffer: "أفضل عرض",
+  viewOffer: "عرض التفاصيل",
+  carouselLabel: "أفضل العروض",
+  pauseSlides: "إيقاف التمرير التلقائي",
+  playSlides: "تشغيل التمرير التلقائي",
+  prevSlide: "العرض السابق",
+  nextSlide: "العرض التالي",
+  catTitle: "تسوق حسب الفئة",
+  offersTitle: "عروض اليوم",
+  filters: "تصفية",
+  apply: "تطبيق التصفية",
+  branchesTitle: "متوفر في",
+  call: "اتصال",
 };
 
 export const dict = { en, ar };
@@ -147,7 +173,14 @@ export function validRange(lang: Lang, from: string, to: string): string {
 export const pick = (lang: Lang, en: string | null | undefined, ar: string | null | undefined): string =>
   (lang === "ar" && ar && ar.trim() ? ar : en) ?? "";
 
-// Colour class for the "how soon" chip.
+// Colour class for the "how soon" chip: red up to 2 days, amber up to 5, green after.
 export function urgency(days: number): "bad" | "warn" | "ok" {
-  return days <= 0 ? "bad" : days <= 2 ? "warn" : "ok";
+  return days <= 2 ? "bad" : days <= 5 ? "warn" : "ok";
 }
+
+export const offLabel = (lang: Lang, pct: number) => (lang === "en" ? `${pct}% OFF` : `خصم ${pct}%`);
+
+export const saveLabel = (lang: Lang, regular: number, offer: number) =>
+  lang === "en" ? `Save ${priceLabel(lang, regular - offer)}` : `وفّر ${priceLabel(lang, regular - offer)}`;
+
+export const goToSlide = (lang: Lang, n: number) => (lang === "en" ? `Go to offer ${n}` : `الانتقال إلى العرض ${n}`);

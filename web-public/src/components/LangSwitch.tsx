@@ -1,17 +1,14 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
-import { useEffect, useState } from "react";
+import { usePathname, useSearchParams } from "next/navigation";
 import { strings, type Lang } from "@/lib/i18n";
 
 // Links to the same page in the other language, keeping the search filters.
 export default function LangSwitch({ lang }: { lang: Lang }) {
   const pathname = usePathname();
-  const [search, setSearch] = useState("");
-  useEffect(() => {
-    setSearch(window.location.search);
-  }, [pathname]);
+  const params = useSearchParams().toString();
+  const search = params ? `?${params}` : "";
 
   const other: Lang = lang === "en" ? "ar" : "en";
   let target: string;
